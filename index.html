@@ -12,6 +12,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
+.plano-sel{transform:scale(1.01)}
+#lic-mp-brick .mercadopago-button{border-radius:14px!important;font-weight:900!important}
+</style>
+<style>
 :root{
   --black:#0a0a0a;--red:#e62222;--rdk:#b51b1b;
   --gold:#f5c518;--white:#fafafa;--green:#16a34a;
@@ -141,6 +145,7 @@ body{font-family:'DM Sans',sans-serif;background:#f2f2ed;color:var(--black);over
 
 .fade-in{animation:fadeIn .3s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
 @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 textarea.inp{resize:vertical;min-height:65px}
@@ -187,11 +192,14 @@ textarea.inp{resize:vertical;min-height:65px}
   <div class="bl-title">LOJA BLOQUEADA</div>
   <div class="bl-sub">Licença Vencida</div>
   <div class="bl-card">
-    <div id="bl-store-name" style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);margin-bottom:10px"></div>
-    <div class="bl-msg">O acesso foi suspenso.<br>Entre em contato para renovar.</div>
-    <a id="bl-wa-link" href="https://wa.me/5513981200354" target="_blank" class="bl-wa">
-      <span style="font-size:22px">📲</span>
-      <div style="text-align:left"><div>Falar com Suporte</div><div style="font-size:11px;opacity:.8">(13) 98120-0354</div></div>
+    <div id="bl-store-name" style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);margin-bottom:6px"></div>
+    <div class="bl-msg" style="margin-bottom:16px">Seu acesso foi suspenso.<br>Renove agora para continuar usando.</div>
+    <button id="bl-pay-btn" onclick="openLicPayModalBlocked()" style="width:100%;background:var(--gold);color:#000;border:none;border-radius:14px;padding:14px;font-weight:900;font-size:15px;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 0 #b8860b">
+      💳 Renovar agora
+    </button>
+    <a id="bl-wa-link" href="https://wa.me/5513981200354" target="_blank" class="bl-wa" style="font-size:12px;padding:11px 16px">
+      <span style="font-size:18px">📲</span>
+      <div style="text-align:left"><div>Falar com Suporte</div><div style="font-size:10px;opacity:.8">(13) 98120-0354</div></div>
     </a>
   </div>
 </div>
@@ -491,9 +499,40 @@ textarea.inp{resize:vertical;min-height:65px}
       </div>
     </div>
     <div style="border-top:1.5px dashed #333;margin-top:18px;padding-top:16px;display:flex;flex-direction:column;gap:8px">
-      <button class="btn btn-green" onclick="msgQueroSerParceiro()" style="font-size:11px">🤝 Quero ser parceiro</button>
+      <button class="btn btn-green" onclick="gotoView('view-merchant-signup',null)" style="font-size:11px">🏪 Cadastrar minha loja grátis</button>
       <button class="btn btn-black" onclick="msgEsqueciSenha()" style="font-size:11px;border-color:#555">🔑 Esqueci minha senha</button>
     </div>
+  </div>
+</section>
+
+<!-- ══════════ LOJISTA — AUTO-CADASTRO ══════════ -->
+<section id="view-merchant-signup" class="view hidden login-screen">
+  <div class="l-logo">WHITE GOLD</div>
+  <div class="l-sub" style="color:#4ade80">30 dias grátis 🎉</div>
+  <div class="l-card">
+    <div style="background:#052e16;border:1.5px solid #166534;border-radius:12px;padding:12px;margin-bottom:16px;text-align:center">
+      <div style="font-size:22px;margin-bottom:4px">🚀</div>
+      <div style="color:#4ade80;font-weight:900;font-size:13px">Comece agora — 30 dias grátis!</div>
+      <div style="color:#86efac;font-size:10px;font-weight:700;margin-top:4px">Sem cartão de crédito. Cancele quando quiser.</div>
+    </div>
+    <label class="lbl" style="color:#aaa">Nome da Loja *</label>
+    <input class="inp inp-dark" id="ms-nome" placeholder="Ex: Burguer do João - Centro">
+    <label class="lbl" style="color:#aaa">Senha de acesso *</label>
+    <input class="inp inp-dark" id="ms-pass" type="password" placeholder="Mínimo 6 caracteres">
+    <label class="lbl" style="color:#aaa">Confirmar senha *</label>
+    <input class="inp inp-dark" id="ms-pass2" type="password" placeholder="Repita a senha">
+    <label class="lbl" style="color:#aaa">WhatsApp (com DDI) *</label>
+    <input class="inp inp-dark" id="ms-wa" type="tel" placeholder="5513999990000">
+    <label class="lbl" style="color:#aaa">Cidade / Bairro *</label>
+    <input class="inp inp-dark" id="ms-cidade" placeholder="Ex: Guarujá - SP">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="lbl" style="color:#aaa">Latitude *</label><input class="inp inp-dark" id="ms-lat" type="number" step="any" placeholder="-23.5505"></div>
+      <div><label class="lbl" style="color:#aaa">Longitude *</label><input class="inp inp-dark" id="ms-lon" type="number" step="any" placeholder="-46.6333"></div>
+    </div>
+    <button class="btn btn-gold" style="font-size:11px;margin-bottom:6px" onclick="buscarGPSSignup()">📡 Usar minha localização</button>
+    <div id="ms-err" class="hidden" style="background:#fee2e2;border:2px solid var(--red);border-radius:12px;padding:10px;margin-bottom:10px;font-size:12px;font-weight:900;color:var(--red);text-align:center"></div>
+    <button class="btn btn-green" onclick="doMerchantSignup()">✅ Criar minha loja grátis</button>
+    <button class="btn btn-black" onclick="gotoView('view-login',null)" style="margin-top:8px;border-color:#555;font-size:11px">← Voltar ao login</button>
   </div>
 </section>
 
@@ -593,17 +632,19 @@ textarea.inp{resize:vertical;min-height:65px}
         <div style="font-weight:900;font-size:12px">Toque para escolher foto</div>
         <div style="font-size:10px;opacity:.5;margin-top:3px">Câmera ou galeria</div>
       </div>
-      <input type="file" id="store-img-file" accept="image/*" capture="environment" class="hidden" onchange="previewStoreImg(this)">
+      <input type="file" id="store-img-file" accept="image/*" class="hidden" onchange="previewStoreImg(this)">
       <label class="lbl">— ou cole uma URL —</label>
       <input class="inp" id="cf-store-img-url" placeholder="https://...foto.jpg">
       <button class="btn btn-black" onclick="saveStoreImg()">Salvar Foto da Loja</button>
     </div>
     <div class="card"><div class="stripe">🛵 Regras de Frete</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div><label class="lbl">Taxa Base R$</label><input class="inp" id="cf-fp" type="number" placeholder="7"></div>
         <div><label class="lbl">Até (km)</label><input class="inp" id="cf-fk" type="number" placeholder="3"></div>
         <div><label class="lbl">+R$/km extra</label><input class="inp" id="cf-fe" type="number" placeholder="2"></div>
+        <div><label class="lbl">🔴 Raio máx. (km)</label><input class="inp" id="cf-kmmax" type="number" placeholder="20" title="Além desta distância sua loja não aparece"></div>
       </div>
+      <div style="font-size:10px;font-weight:700;color:#888;margin-bottom:10px">⚠️ Clientes além do raio máximo não verão sua loja</div>
       <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:12px">
         <div style="font-weight:900;font-size:12px;margin-bottom:6px">🔄 Cobrança de Retorno</div>
         <div style="font-size:11px;color:#888;font-weight:700;margin-bottom:10px">Cobrar frete de volta conforme pagamento:</div>
@@ -669,7 +710,7 @@ textarea.inp{resize:vertical;min-height:65px}
         <div style="font-weight:900;font-size:12px">Toque para foto do produto</div>
         <div style="font-size:10px;opacity:.5;margin-top:3px">Câmera ou galeria</div>
       </div>
-      <input type="file" id="prod-img-file" accept="image/*" capture="environment" class="hidden" onchange="previewProdImg(this)">
+      <input type="file" id="prod-img-file" accept="image/*" class="hidden" onchange="previewProdImg(this)">
       <label class="lbl">— ou cole uma URL —</label>
       <input class="inp" id="cf-img-url" placeholder="https://...foto.jpg">
       <label class="lbl">Nome do item</label><input class="inp" id="cf-nome" placeholder="Ex: X-Burguer">
@@ -692,9 +733,12 @@ textarea.inp{resize:vertical;min-height:65px}
   <div class="l-sub">Painel Master</div>
   <div class="l-card">
     <label class="lbl" style="color:#aaa">Senha Master</label>
-    <input class="inp inp-dark" id="adm-pass" type="password" placeholder="••••••••">
+    <input class="inp inp-dark" id="adm-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAdminLogin()">
     <button class="btn btn-gold" style="margin-top:12px" onclick="doAdminLogin()">Acessar →</button>
-    <div id="adm-err" class="hidden" style="color:var(--red);text-align:center;font-size:11px;font-weight:700;margin-top:10px">Senha incorreta!</div>
+    <div id="adm-err" class="hidden" style="background:#fee2e2;border:2px solid var(--red);border-radius:12px;padding:12px;text-align:center;margin-top:10px">
+      <div id="adm-err-msg" style="color:var(--red);font-size:12px;font-weight:900">Senha incorreta!</div>
+      <div id="adm-err-sub" style="color:#7f1d1d;font-size:10px;font-weight:700;margin-top:3px"></div>
+    </div>
   </div>
 </section>
 
@@ -707,6 +751,8 @@ textarea.inp{resize:vertical;min-height:65px}
     <button class="tab-item" onclick="aTab('relatorio',this)">📊 Relatório</button>
     <button class="tab-item" onclick="aTab('clientes',this)">👥 Clientes</button>
     <button class="tab-item" onclick="aTab('nova',this)">➕ Nova</button>
+    <button class="tab-item" id="tab-pagamentos" onclick="aTab('pagamentos',this)">💰 Pagamentos</button>
+    <button class="tab-item" onclick="aTab('configadm',this)">⚙️ Config</button>
   </div>
   <div id="adm-lojas"><div class="stripe">🏪 Lojas Cadastradas</div><div id="adm-list-stores"></div></div>
   <div id="adm-relatorio" class="hidden">
@@ -732,6 +778,76 @@ textarea.inp{resize:vertical;min-height:65px}
       </div>
       <label class="lbl">WhatsApp (com DDI)</label><input class="inp" id="n-wa" placeholder="5513999990000">
       <button class="btn btn-gold" onclick="criarLoja()">✅ Criar Loja</button>
+    </div>
+  </div>
+  <div id="adm-pagamentos" class="hidden">
+    <!-- Resumo financeiro -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0">
+      <div class="stat-box" style="border-color:#16a34a">
+        <div class="stat-val" id="adm-total-recebido" style="color:#16a34a">R$ 0</div>
+        <div class="stat-lbl">Total Recebido</div>
+      </div>
+      <div class="stat-box" style="border-color:#1d4ed8">
+        <div class="stat-val" id="adm-total-aprovados" style="color:#1d4ed8">0</div>
+        <div class="stat-lbl">Aprovados</div>
+      </div>
+      <div class="stat-box" style="border-color:#e62222">
+        <div class="stat-val" id="adm-total-falhas" style="color:#e62222">0</div>
+        <div class="stat-lbl">Falhas/Erros</div>
+      </div>
+      <div class="stat-box" style="border-color:#ca8a04">
+        <div class="stat-val" id="adm-total-pendentes" style="color:#ca8a04">0</div>
+        <div class="stat-lbl">Pendentes</div>
+      </div>
+    </div>
+    <!-- Filtros -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-black adm-pay-filter active" onclick="filtrarPagAdmin('todos',this)" style="font-size:11px">Todos</button>
+      <button class="btn btn-sm adm-pay-filter" onclick="filtrarPagAdmin('approved',this)" style="font-size:11px;background:#dcfce7;color:#16a34a;border-color:#16a34a">✅ Aprovados</button>
+      <button class="btn btn-sm adm-pay-filter" onclick="filtrarPagAdmin('pending',this)" style="font-size:11px;background:#fef9c3;color:#ca8a04;border-color:#ca8a04">⏳ Pendentes</button>
+      <button class="btn btn-sm adm-pay-filter" onclick="filtrarPagAdmin('rejected',this)" style="font-size:11px;background:#fee2e2;color:#e62222;border-color:#e62222">❌ Falhas</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button onclick="loadAdminPagamentos()" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">🔄 Atualizar</button>
+      <button onclick="buscarPagamentosMP()" style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">🔎 Buscar no MP</button>
+      <button onclick="limparRegistrosInvalidos()" style="background:none;border:1.5px solid #e62222;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:#e62222;cursor:pointer">🧹 Limpar inválidos</button>
+    </div>
+    <div id="adm-pay-list" style="display:flex;flex-direction:column;gap:8px">
+      <p style="text-align:center;opacity:.4;font-size:12px;font-weight:700;margin:20px 0">Carregando...</p>
+    </div>
+  </div>
+  <div id="adm-configadm" class="hidden">
+    <div class="card">
+      <div class="stripe">💳 Credenciais MercadoPago</div>
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px;line-height:1.6">Configure suas credenciais para receber pagamentos via Pix e cartão diretamente. Estas informações ficam salvas com segurança.</div>
+      <label class="lbl">Access Token (produção)</label>
+      <input class="inp" id="adm-mp-token" type="password" placeholder="APP_USR-...">
+      <label class="lbl">Public Key</label>
+      <input class="inp" id="adm-mp-pubkey" placeholder="APP_USR-...">
+      <label class="lbl">Webhook URL (opcional)</label>
+      <input class="inp" id="adm-mp-webhook" placeholder="https://...">
+      <button class="btn btn-gold" onclick="saveAdmMP()">💾 Salvar credenciais MP</button>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="stripe">💰 Tabela de Preços</div>
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px">Defina quanto você cobra das lojas por período de licença.</div>
+      <label class="lbl">Mensalidade (R$)</label>
+      <input class="inp" id="adm-preco-mes" type="number" step="0.01" placeholder="49.90">
+      <label class="lbl">Trimestral (R$)</label>
+      <input class="inp" id="adm-preco-tri" type="number" step="0.01" placeholder="129.90">
+      <label class="lbl">Semestral (R$)</label>
+      <input class="inp" id="adm-preco-sem" type="number" step="0.01" placeholder="239.90">
+      <label class="lbl">Anual (R$)</label>
+      <input class="inp" id="adm-preco-ano" type="number" step="0.01" placeholder="449.90">
+      <button class="btn btn-gold" onclick="saveAdmPrecos()">💾 Salvar preços</button>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="stripe">🔑 Alterar senha Master</div>
+      <label class="lbl">Nova senha</label>
+      <input class="inp" id="adm-new-pass" type="password" placeholder="Nova senha">
+      <label class="lbl">Confirmar</label>
+      <input class="inp" id="adm-new-pass2" type="password" placeholder="Confirme">
+      <button class="btn btn-red" onclick="saveAdmPass()">🔑 Alterar senha</button>
     </div>
   </div>
 </section>
@@ -890,6 +1006,14 @@ function watchNotifications(lojaId){
 const ADMIN_PASS="wgmaster2024";
 const OWNER_WA="5513981200354";
 const MS_DAY=86400000;
+// Mercado Pago
+const MP_PUBLIC_KEY="APP_USR-4e32d887-bceb-4e98-bdfc-ead1f03576f3";
+const MP_ACCESS_TOKEN="APP_USR-2741301307121161-022319-fc1349f2e4f47734885c9569f228b664-362297602";
+const MP_PIX_KEY="7a5c82de-09f6-4660-833f-cc414cc2c686"; // chave aleatória
+const MP_TITULAR="LEOMACHADO243";
+let _licPayLoja=null;
+let _mpInstance=null;
+let _mpPaymentCheckInterval=null;
 
 // ─── STATE ──────────────────────────────────────────────
 let curLoja="", storeData=null;
@@ -1204,44 +1328,213 @@ function mTab(id,btn){
 
 // ─── LOJISTA: DELIVERY ──────────────────────────────────
 let _deliveryRef=null;
+
+// ─── IMPRESSÃO DE PEDIDO ────────────────────────────────
+function imprimirPedido(dados){
+  // dados: {tipo, cliente, endereco, fone, mesa, garcom, itens, total, totalFinal, pagamento, gorjeta, gorjetaVal, retorno, troco, hora, dia}
+  const loja=document.getElementById('m-title')?.innerText||'White Gold';
+  const itensHtml=(dados.itens||[]).map(i=>`
+    <tr>
+      <td style="padding:2px 0">${i.qty}x ${i.name}</td>
+      <td style="text-align:right;padding:2px 0;white-space:nowrap">R$ ${(i.price*i.qty).toFixed(2)}</td>
+    </tr>`).join('');
+  const payLabels={pix:'Pix',dinheiro:'Dinheiro',cartao:'Cartão/Maquininha'};
+  const tipo=dados.tipo==='mesa'?`Mesa ${dados.mesa} — Garçom: ${dados.garcom||'-'}`:
+    dados.tipo==='cozinha'?`🔥 COZINHA — Mesa ${dados.mesa}`:'🛵 Delivery';
+  const temGorjeta=dados.gorjeta===true;
+  const totalFinal=parseFloat(dados.totalFinal||dados.total||0);
+  
+  const win=window.open('','_blank','width=380,height=600');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Pedido</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:monospace;font-size:13px;padding:12px;max-width:320px;margin:auto}
+    .center{text-align:center}
+    .bold{font-weight:bold}
+    .big{font-size:18px;font-weight:bold}
+    .line{border-top:1px dashed #000;margin:8px 0}
+    table{width:100%;border-collapse:collapse}
+    td{vertical-align:top}
+    .total-row td{font-weight:bold;font-size:15px;padding-top:6px}
+    @media print{button{display:none!important}body{padding:4px}}
+  </style></head><body>
+  <div class="center bold" style="font-size:16px">${loja}</div>
+  <div class="center" style="font-size:11px;margin-bottom:4px">${dados.dia||''} ${dados.hora||''}</div>
+  <div class="line"></div>
+  <div class="bold" style="font-size:13px;margin-bottom:4px">${tipo}</div>
+  ${dados.tipo!=='cozinha'&&dados.cliente?`<div>👤 ${dados.cliente}</div>`:''}
+  ${dados.fone?`<div>📞 ${dados.fone}</div>`:''}
+  ${dados.endereco?`<div>📍 ${dados.endereco}</div>`:''}
+  <div class="line"></div>
+  <table>${itensHtml}</table>
+  <div class="line"></div>
+  ${dados.tipo!=='cozinha'?`
+  <table>
+    <tr><td>Subtotal</td><td style="text-align:right">R$ ${parseFloat(dados.total||0).toFixed(2)}</td></tr>
+    ${temGorjeta?`<tr><td>Gorjeta (10%)</td><td style="text-align:right">R$ ${parseFloat(dados.gorjetaVal||0).toFixed(2)}</td></tr>`:''}
+    ${dados.retorno>0?`<tr><td>Retorno frete</td><td style="text-align:right">R$ ${parseFloat(dados.retorno).toFixed(2)}</td></tr>`:''}
+    <tr class="total-row"><td>TOTAL</td><td style="text-align:right">R$ ${totalFinal.toFixed(2)}</td></tr>
+    ${dados.pagamento?`<tr><td colspan="2" style="font-size:11px;padding-top:4px">Pagamento: ${payLabels[dados.pagamento]||dados.pagamento}${dados.pagamento==='dinheiro'&&dados.troco?' — Troco p/ R$ '+parseFloat(dados.troco).toFixed(2):''}</td></tr>`:''}
+  </table>`:''}
+  <div class="line"></div>
+  <div class="center" style="font-size:10px">White Gold — Sistema de Pedidos</div>
+  <br>
+  <div class="center">
+    <button onclick="window.print();setTimeout(()=>window.close(),500)" 
+      style="padding:10px 28px;font-size:14px;font-weight:bold;background:#000;color:#fff;border:none;border-radius:8px;cursor:pointer">
+      🖨️ Imprimir
+    </button>
+  </div>
+  </body></html>`);
+  win.document.close();
+}
+
+// ─── RECUPERAR PIX PENDENTE ──────────────────────────────
+// Chamado ao fazer login do lojista — verifica se tem pagamento que
+// foi feito mas não foi detectado (ex: modal foi fechado, app reaberto)
+async function verificarPixPendente(lojaKey){
+  try{
+    const snap=await db.ref('pix-pending/'+lojaKey).once('value');
+    if(!snap.exists())return;
+    const pend=snap.val();
+    // Só verificar se tem menos de 30 minutos
+    if(Date.now()-pend.ts>30*60*1000){
+      db.ref('pix-pending/'+lojaKey).remove();
+      return;
+    }
+    // Consultar status no MP
+    const r=await fetch('https://api.mercadopago.com/v1/payments/'+pend.paymentId,{
+      headers:{'Authorization':'Bearer '+MP_ACCESS_TOKEN}
+    });
+    const p=await r.json();
+    if(p.status==='approved'){
+      db.ref('pix-pending/'+lojaKey).remove();
+      window._licPayLojaNome=pend.lojaNome||lojaKey;
+      await ativarLicencaAposPagamento(lojaKey, pend.dias, pend.paymentId, pend.valor);
+    }
+  }catch(e){console.warn('verificarPixPendente:',e);}
+}
+
 function loadDelivery(){
   if(!curLoja)return;
   const list=document.getElementById('list-delivery-active');
   const hist=document.getElementById('list-delivery-done');
   if(!list)return;
-  // Desanexa listener anterior para evitar duplicatas
   if(_deliveryRef)_deliveryRef.off('value');
   _deliveryRef=db.ref('orders/'+curLoja);
   _deliveryRef.on('value',snap=>{
-    list.innerHTML='';hist.innerHTML='';
-    if(!snap.exists()){list.innerHTML='<p style="opacity:.4;font-size:12px;font-weight:700;text-align:center;margin:20px 0">Nenhum pedido ainda</p>';
+    list.innerHTML='';
+    if(hist)hist.innerHTML='';
+    if(!snap.exists()){
+      list.innerHTML='<p style="opacity:.4;font-size:12px;font-weight:700;text-align:center;margin:20px 0">Nenhum pedido ainda</p>';
       const oc=document.getElementById('m-open-count');const dc=document.getElementById('m-done-count');
-      if(oc)oc.innerText='0';if(dc)dc.innerText='0';return;}
+      if(oc)oc.innerText='0';if(dc)dc.innerText='0';return;
+    }
     let foundActive=false,cntOpen=0,cntDone=0;
     const payLabels={pix:'📱 Pix',dinheiro:'💵 Dinheiro',cartao:'💳 Cartão'};
     snap.forEach(o=>{
       const d=o.val(),id=o.key;
+      const isCancelado=d.status==='cancelado';
       const isDone=d.status==='concluido';
-      if(!isDone){foundActive=true;cntOpen++;}else{cntDone++;}
-      const card=document.createElement('div');card.className='order-card fade-in';
+      const isAtivo=!isDone&&!isCancelado;
+      if(isAtivo){foundActive=true;cntOpen++;}
+      else if(isDone){cntDone++;}
+      const card=document.createElement('div');
+      card.className='order-card fade-in';
+      if(isCancelado)card.style.opacity='0.55';
       const itens=(d.itens||[]).map(i=>`${i.qty}x ${i.name}`).join(', ');
       const payStr=d.pagamento?`<div style="font-size:10px;font-weight:700;color:#555;margin-top:2px">${payLabels[d.pagamento]||d.pagamento}${d.pagamento==='dinheiro'&&d.troco?' (Troco p/ R$ '+parseFloat(d.troco).toFixed(2)+')':''}</div>`:'';
       const retStr=d.retorno>0?`<div style="font-size:10px;font-weight:700;color:#b45309">🔄 Retorno: R$ ${parseFloat(d.retorno).toFixed(2)}</div>`:'';
-      const pill=isDone?'<span class="pill pill-green">✅ Entregue</span>':'<span class="pill pill-gold">⏳ Pendente</span>';
-      const footer=isDone?`<div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>`
-        :`<div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>
-         <button class="btn btn-green btn-sm" onclick="concluirPedido('${id}')">Concluir ✓</button>`;
-      card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div><div style="font-weight:900;font-size:15px">${d.cliente||'--'}</div>
-        <div style="font-size:10px;opacity:.5">🕐 ${d.hora||''} — ${d.endereco||''}</div>
-        ${payStr}${retStr}</div>${pill}</div>
+      const foneStr=d.fone?`<div style="font-size:10px;font-weight:700;color:#1d4ed8">📞 ${d.fone}</div>`:'';
+      const pill=isCancelado?'<span class="pill pill-red">❌ Cancelado</span>':isDone?'<span class="pill pill-green">✅ Entregue</span>':'<span class="pill pill-gold">⏳ Pendente</span>';
+      const _dp=JSON.stringify({tipo:'delivery',cliente:d.cliente||'',fone:d.fone||'',endereco:d.endereco||'',itens:d.itens||[],total:d.total||0,retorno:d.retorno||0,troco:d.troco||'',pagamento:d.pagamento||'',hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
+      const printDelBtn=`<button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_dp}" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:4px 8px;font-size:15px;cursor:pointer" title="Imprimir">🖨️</button>`;
+      const motivoCancelStr=d.motivoCancel?`<div style="font-size:10px;font-weight:700;color:#e62222;margin-top:3px">Motivo: ${d.motivoCancel}</div>`:'';
+      let footer='';
+      if(isCancelado){
+        footer=`<div style="font-size:11px;color:#e62222;font-weight:700">❌ Pedido cancelado</div>${motivoCancelStr}`;
+      } else if(isDone){
+        footer=`<div style="display:flex;align-items:center;gap:6px"><div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>${printDelBtn}</div>`;
+      } else {
+        footer=`<div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-green btn-sm" onclick="concluirPedido('${id}')">✓ Concluir</button>
+          <button class="btn btn-sm" onclick="cancelarPedidoDelivery('${id}','${(d.cliente||'').replace(/'/g,'')}','${(d.fone||'').replace(/'/g,'')}')" style="background:#fee2e2;color:#e62222;border:1.5px solid #e62222;font-size:11px;font-weight:900;border-radius:8px;padding:5px 10px;cursor:pointer">✕ Cancelar</button>
+          ${printDelBtn}
+        </div>`;
+      }
+      card.innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-weight:900;font-size:15px">${d.cliente||'--'}</div>
+            <div style="font-size:10px;opacity:.5">🕐 ${d.hora||''} — ${d.endereco||''}</div>
+            ${foneStr}${payStr}${retStr}
+          </div>${pill}
+        </div>
         <div style="font-size:11px;line-height:1.7;border-top:1.5px dashed #ddd;padding-top:7px">${itens}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:9px">${footer}</div>`;
-      if(isDone)hist.appendChild(card); else list.appendChild(card);
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:9px;flex-wrap:wrap;gap:6px">${footer}</div>`;
+      if(isAtivo||isCancelado) list.appendChild(card);
+      else if(hist) hist.appendChild(card);
     });
-    if(!foundActive)list.innerHTML='<p style="opacity:.4;font-size:12px;font-weight:700;text-align:center;margin:20px 0">Nenhum pedido ativo</p>';
+    if(!foundActive&&!list.children.length)
+      list.innerHTML='<p style="opacity:.4;font-size:12px;font-weight:700;text-align:center;margin:20px 0">Nenhum pedido ativo</p>';
     const oc=document.getElementById('m-open-count');const dc=document.getElementById('m-done-count');
     if(oc)oc.innerText=cntOpen;if(dc)dc.innerText=cntDone;
+  });
+}
+
+// ─── CANCELAR PEDIDO DELIVERY ───────────────────────────
+function cancelarPedidoDelivery(id, cliente, fone){
+  // Modal de cancelamento com motivo
+  const old=document.getElementById('cancel-modal-del');if(old)old.remove();
+  document.body.insertAdjacentHTML('beforeend',`
+    <div id="cancel-modal-del" style="position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.7);display:flex;align-items:flex-end">
+      <div style="background:#fff;border-radius:22px 22px 0 0;padding:24px;width:100%">
+        <div style="font-weight:900;font-size:18px;margin-bottom:4px">❌ Cancelar pedido</div>
+        <div style="font-size:12px;color:#888;font-weight:700;margin-bottom:16px">Cliente: ${cliente||'--'}${fone?' · '+fone:''}</div>
+        <label style="font-size:11px;font-weight:900;text-transform:uppercase;color:#555;display:block;margin-bottom:6px">Motivo do cancelamento</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+          <button onclick="selecionarMotivo(this,'Produto indisponível')" class="motivo-btn" style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;text-align:left">🚫 Produto indisponível</button>
+          <button onclick="selecionarMotivo(this,'Fora da área de entrega')" class="motivo-btn" style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;text-align:left">📍 Fora da área de entrega</button>
+          <button onclick="selecionarMotivo(this,'Loja fechada')" class="motivo-btn" style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;text-align:left">🔒 Loja fechada</button>
+          <button onclick="selecionarMotivo(this,'Pedido duplicado')" class="motivo-btn" style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;text-align:left">📋 Pedido duplicado</button>
+          <input id="motivo-outro" placeholder="Outro motivo..." class="inp" style="font-size:12px" oninput="document.getElementById('btn-confirmar-cancel').disabled=!this.value.trim()">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="document.getElementById('cancel-modal-del').remove()" style="flex:1;background:#f1f5f9;border:none;border-radius:12px;padding:13px;font-weight:900;font-size:14px;cursor:pointer">Voltar</button>
+          <button id="btn-confirmar-cancel" onclick="confirmarCancelDelivery('${id}','${fone}')" disabled style="flex:1;background:#e62222;color:#fff;border:none;border-radius:12px;padding:13px;font-weight:900;font-size:14px;cursor:pointer">Cancelar pedido</button>
+        </div>
+      </div>
+    </div>`);
+}
+function selecionarMotivo(btn,motivo){
+  document.querySelectorAll('.motivo-btn').forEach(b=>{b.style.borderColor='#e2e8f0';b.style.background='#f8fafc';});
+  btn.style.borderColor='#e62222';btn.style.background='#fff1f2';
+  const outroInput=document.getElementById('motivo-outro');
+  outroInput.value='';
+  outroInput.dataset.selected=motivo;
+  document.getElementById('btn-confirmar-cancel').disabled=false;
+}
+function confirmarCancelDelivery(id, fone){
+  const outroInput=document.getElementById('motivo-outro');
+  const motivo=outroInput.dataset.selected||outroInput.value.trim()||'Não informado';
+  const now=new Date();
+  db.ref('orders/'+curLoja+'/'+id).update({
+    status:'cancelado',
+    motivoCancel:motivo,
+    canceladoEm:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    canceladoDia:now.toLocaleDateString('pt-BR')
+  }).then(()=>{
+    document.getElementById('cancel-modal-del').remove();
+    // Notificar cliente via WhatsApp se tiver fone
+    if(fone&&fone!=='undefined'){
+      const msg=encodeURIComponent('Olá! Infelizmente seu pedido foi cancelado. Motivo: '+motivo+'. Pedimos desculpas pelo transtorno. 🙏');
+      const waUrl='https://wa.me/55'+fone.replace(/\D/g,'')+`?text=${msg}`;
+      if(confirm('Deseja notificar o cliente via WhatsApp?')){
+        window.open(waUrl,'_blank');
+      }
+    }
   });
 }
 function concluirPedido(id){
@@ -1271,9 +1564,10 @@ function loadKitchen(){
       cnt++;
       const card=document.createElement('div');card.className='order-card fade-in';
       const itens=(d.itens||[]).map(i=>`${i.qty}x ${i.name}`).join(', ');
+      const _kp=JSON.stringify({tipo:'cozinha',mesa:d.mesa,garcom:d.garcom||'',itens:d.itens||[],total:d.total||0,hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
       card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red)">MESA ${d.mesa}</div>
-        <span class="pill pill-red">🔥 Cozinha</span></div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="pill pill-red">🔥 Cozinha</span><button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_kp}" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:4px 8px;font-size:15px;cursor:pointer" title="Imprimir comanda">🖨️</button></div></div>
         <div style="font-size:12px;line-height:1.7;border-top:1.5px dashed #ddd;padding-top:7px">${itens}</div>
         <button class="btn btn-green btn-sm" style="margin-top:10px" onclick="marcarPronto('${id}')">✅ Pronto</button>`;
       list.appendChild(card);
@@ -1318,8 +1612,10 @@ function loadMesaOrders(){
       const pill=`<span class="pill ${isDone?'pill-green':isCozinha?'pill-red':'pill-blue'}">${isDone?'✅ Fechada':isCozinha?'🔥 Cozinha':'🍽️ Aberta'}</span>`;
       const valMesa = isDone ? parseFloat(d.totalFinal||d.total||0) : parseFloat(d.total||0);
       const gorjetaBadge = (isDone&&d.gorjeta===true) ? ' <span style="font-size:9px;background:#dcfce7;color:var(--green);font-weight:900;padding:2px 6px;border-radius:6px;margin-left:4px">+gorjeta</span>' : '';
-      let footer=`<div style="font-weight:900;font-size:14px;color:var(--blue)">R$ ${valMesa.toFixed(2)}${gorjetaBadge}</div>`;
-      if(!isDone&&!isCozinha)footer+=`<button class="btn btn-gold btn-sm" onclick="openPayModal('${id}')">💳 Fechar Conta</button>`;
+      const _mp=JSON.stringify({tipo:'mesa',mesa:d.mesa,garcom:d.garcom||'',itens:d.itens||[],total:d.total||0,totalFinal:d.totalFinal||d.total||0,gorjeta:d.gorjeta===true,gorjetaVal:d.gorjetaVal||0,pagamento:d.pagamento||'',hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
+      const printMesaBtn=`<button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_mp}" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:4px 8px;font-size:15px;cursor:pointer" title="Imprimir">🖨️</button>`;
+      let footer=`<div style="display:flex;align-items:center;gap:6px"><div style="font-weight:900;font-size:14px;color:var(--blue)">R$ ${valMesa.toFixed(2)}${gorjetaBadge}</div>${printMesaBtn}</div>`;
+      if(!isDone&&!isCozinha)footer=`<div style="font-weight:900;font-size:14px;color:var(--blue)">R$ ${valMesa.toFixed(2)}</div><div style="display:flex;gap:6px;align-items:center"><button class="btn btn-gold btn-sm" onclick="openPayModal('${id}')">💳 Fechar Conta</button>${printMesaBtn}</div>`;
       card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue)">MESA ${d.mesa}</div>
         <div style="font-size:10px;font-weight:700;opacity:.5">🕐 ${d.hora||''} — Garçom: ${d.garcom||''}</div>
@@ -1488,8 +1784,9 @@ function loadCaixa(){
         const label=tipo==='mesa'?`🍽️ Mesa ${d.mesa}`:`🛵 ${d.cliente||'--'}`;
         const payIcon=d.pagamento==='dinheiro'?'💵':d.pagamento==='pix'?'📱':'💳';
         const payStr=d.pagamento?(payIcon+(temGorjeta?' +gorjeta':'')):'';
+        const _cp=JSON.stringify({tipo,mesa:d.mesa,cliente:d.cliente||'',garcom:d.garcom||'',fone:d.fone||'',endereco:d.endereco||'',itens:d.itens||[],total:d.total||0,totalFinal:d.totalFinal||d.total||0,gorjeta:temGorjeta,gorjetaVal:d.gorjetaVal||0,retorno:d.retorno||0,troco:d.troco||'',pagamento:d.pagamento||'',hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
         row.innerHTML=`<span style="font-size:11px;font-weight:700">${d.hora||d.dia||'--'} ${label} ${payStr}</span>`+
-          `<span style="color:var(--green);font-weight:900">R$ ${val.toFixed(2)}</span>`;
+          `<div style="display:flex;align-items:center;gap:6px"><span style="color:var(--green);font-weight:900">R$ ${val.toFixed(2)}</span><button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_cp}" style="background:none;border:1.5px solid #ccc;border-radius:7px;padding:2px 7px;font-size:13px;cursor:pointer" title="Imprimir">🖨️</button></div>`;
         list.appendChild(row);
 
         total+=val;
@@ -1540,6 +1837,7 @@ function loadConfigForm(){
     document.getElementById('cf-fp').value=d.basePrice||7;
     document.getElementById('cf-fk').value=d.baseKm||3;
     document.getElementById('cf-fe').value=d.kmExtra||2;
+    const kmMaxEl=document.getElementById('cf-kmmax');if(kmMaxEl)kmMaxEl.value=d.kmMax||20;
     const ret2=d.retorno||{};
     const rdEl=document.getElementById('cf-ret-dinheiro');if(rdEl)rdEl.checked=!!ret2.dinheiro;
     const rcEl=document.getElementById('cf-ret-cartao');if(rcEl)rcEl.checked=!!ret2.cartao;
@@ -1610,8 +1908,9 @@ function saveFrete(){
   const rdEl=document.getElementById('cf-ret-dinheiro');
   const rcEl=document.getElementById('cf-ret-cartao');
   const rvEl=document.getElementById('cf-ret-val');
+  const kmMax=parseFloat(document.getElementById('cf-kmmax')?.value)||20;
   const retorno={dinheiro:rdEl?rdEl.checked:false,cartao:rcEl?rcEl.checked:false,pix:false,valor:rvEl?parseFloat(rvEl.value)||0:0};
-  db.ref('stores/'+curLoja).update({basePrice:bp,baseKm:bk,kmExtra:ke,retorno}).then(()=>alert('Frete e retorno salvos!'));
+  db.ref('stores/'+curLoja).update({basePrice:bp,baseKm:bk,kmExtra:ke,kmMax,retorno}).then(()=>alert('✅ Frete e entrega salvos!'));
 }
 function saveSenhaCaixa(){const v=document.getElementById('cf-pass-cx').value;if(!v)return alert('Digite a nova senha!');db.ref('stores/'+curLoja).update({caixaPass:v}).then(()=>alert('✅ Senha salva!'));}
 function saveStoreImg(){
@@ -1750,9 +2049,440 @@ function doClientLogout(){
 function getLic(d){const exp=d.licenseExpiry||0,now=Date.now(),dl=Math.ceil((exp-now)/MS_DAY);return now>exp?{ok:false,dl:0,exp:true}:{ok:true,dl,exp:false};}
 function renderLicBanner(d){
   const b=document.getElementById('lic-banner'),l=getLic(d);
-  if(l.exp){b.innerHTML=`<div style="background:#fee2e2;border:2.5px solid var(--red);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px"><div style="font-weight:900;color:var(--red);font-size:15px;margin-bottom:6px">🔒 LICENÇA VENCIDA</div><a href="https://wa.me/${OWNER_WA}?text=${encodeURIComponent('Renovar licença — '+d.name)}" target="_blank" class="btn btn-green btn-sm" style="display:inline-block">📲 Renovar — (13) 98120-0354</a></div>`;}
-  else if(l.dl<=7){b.innerHTML=`<div style="background:#fef9c3;border:2.5px solid #ca8a04;border-radius:14px;padding:12px;text-align:center;margin-bottom:14px"><div style="font-weight:900;color:#854d0e">⚠️ Licença vence em ${l.dl} dia(s)!</div><a href="https://wa.me/${OWNER_WA}" target="_blank" class="btn btn-gold btn-sm" style="display:inline-block;margin-top:8px">📲 Renovar</a></div>`;}
-  else{b.innerHTML=`<div style="text-align:center;font-size:10px;font-weight:700;opacity:.4;margin-bottom:10px">✅ Licença ativa — ${l.dl} dia(s)</div>`;}
+  const waMsg=encodeURIComponent('Olá! Quero renovar a licença do White Gold — Loja: '+(d.name||''));
+  const waUrl='https://wa.me/'+OWNER_WA+'?text='+waMsg;
+  if(l.exp){
+    b.innerHTML=`<div style="background:#fee2e2;border:2.5px solid var(--red);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px">
+      <div style="font-size:28px;margin-bottom:4px">🔒</div>
+      <div style="font-weight:900;color:var(--red);font-size:15px;margin-bottom:4px">LICENÇA VENCIDA</div>
+      <div style="font-size:11px;font-weight:700;color:#7f1d1d;margin-bottom:12px">Seu acesso foi suspenso. Renove para continuar.</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="${waUrl}" target="_blank" class="btn btn-green" style="display:block;font-size:12px">📲 Renovar pelo WhatsApp</a>
+        <button onclick="openLicPayModal('${d.name||''}')" class="btn btn-gold" style="font-size:12px">💳 Pagar agora</button>
+      </div>
+    </div>`;
+  } else {
+    // Barra de progresso de dias
+    const totalDias=30; // referência visual
+    const pct=Math.min(100,Math.round((l.dl/totalDias)*100));
+    const cor=l.dl<=3?'var(--red)':l.dl<=7?'#ca8a04':'var(--green)';
+    const bg=l.dl<=3?'#fee2e2':l.dl<=7?'#fef9c3':'#dcfce7';
+    const bord=l.dl<=3?'var(--red)':l.dl<=7?'#ca8a04':'var(--green)';
+    const emoji=l.dl<=3?'🔴':l.dl<=7?'🟡':'🟢';
+    b.innerHTML=`<div style="background:${bg};border:2px solid ${bord};border-radius:14px;padding:12px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:900;font-size:12px;color:${cor}">${emoji} Licença ativa</span>
+        <span style="font-weight:900;font-size:13px;color:${cor}">${l.dl} dia${l.dl!==1?'s':''} restante${l.dl!==1?'s':''}</span>
+      </div>
+      <div style="background:#fff;border-radius:99px;height:8px;overflow:hidden;margin-bottom:${l.dl<=7?'10px':'0'}">
+        <div style="height:100%;width:${pct}%;background:${cor};border-radius:99px;transition:width .4s"></div>
+      </div>
+      ${l.dl<=7?`<div style="display:flex;gap:6px;margin-top:6px">
+        <a href="${waUrl}" target="_blank" class="btn btn-gold btn-sm" style="flex:1;text-align:center;font-size:11px">📲 Renovar WA</a>
+        <button onclick="openLicPayModal('${d.name||''}')" class="btn btn-green btn-sm" style="flex:1;font-size:11px">💳 Pagar</button>
+      </div>`:''}
+    </div>`;
+  }
+}
+// ─── LICENÇA: PLANOS ─────────────────────────────────────
+function openLicPayModal(nomeLoja){
+  const lojaKey=curLoja;
+  db.ref('admin-config').once('value',s=>{
+    const cfg=s.val()||{};
+    const planos=[
+      {dias:30, label:'30 dias', sub:'Mensal', valor:parseFloat(cfg.precoMes||49.90), cor:'#1d4ed8', emoji:'📅'},
+      {dias:90, label:'90 dias', sub:'Trimestral', valor:parseFloat(cfg.precoTri||129.90), cor:'#16a34a', emoji:'📆'},
+      {dias:180,label:'180 dias',sub:'Semestral',  valor:parseFloat(cfg.precoSem||239.90), cor:'#7c3aed', emoji:'🗓️'},
+      {dias:365,label:'365 dias',sub:'Anual 🏆',   valor:parseFloat(cfg.precoAno||449.90), cor:'#e62222', emoji:'🎯'}
+    ];
+    // Remove modal anterior se existir
+    const old=document.getElementById('lic-pay-modal');if(old)old.remove();
+    document.body.insertAdjacentHTML('beforeend',`
+    <div id="lic-pay-modal" style="position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.88);display:flex;align-items:flex-end">
+      <div id="lic-pay-inner" style="background:#fff;border-radius:22px 22px 0 0;padding:22px;width:100%;max-height:92vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px">💳 Renovar Licença</div>
+          <button onclick="closeLicPayModal()" style="background:none;border:none;font-size:28px;cursor:pointer;line-height:1">×</button>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:16px">Pagamento seguro via Mercado Pago · Pix ou Cartão</div>
+        <div id="lic-planos-grid" style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px">
+          ${planos.map((p,i)=>`
+          <button onclick="selecionarPlanoLic(${i})" id="plano-btn-${i}" data-dias="${p.dias}" data-valor="${p.valor}" style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:2.5px solid #e2e8f0;border-radius:14px;padding:14px 16px;cursor:pointer;width:100%;transition:all .15s" onmouseover="this.style.borderColor='${p.cor}'" onmouseout="if(!this.classList.contains('plano-sel'))this.style.borderColor='#e2e8f0'">
+            <div style="text-align:left">
+              <div style="font-weight:900;font-size:15px;color:${p.cor}">${p.emoji} ${p.label}</div>
+              <div style="font-size:10px;font-weight:700;opacity:.55">${p.sub}</div>
+            </div>
+            <div style="font-weight:900;font-size:20px;color:${p.cor}">R$ ${p.valor.toFixed(2)}</div>
+          </button>`).join('')}
+        </div>
+        <div id="lic-pay-brick-area" class="hidden" style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div id="lic-plano-selecionado" style="font-weight:900;font-size:13px"></div>
+            <button onclick="voltarPlanosLic()" style="font-size:11px;font-weight:700;color:#888;background:none;border:none;cursor:pointer">← Trocar plano</button>
+          </div>
+          <div id="lic-mp-brick"></div>
+          <div id="lic-pay-status" class="hidden" style="text-align:center;padding:20px">
+            <div style="font-size:40px;margin-bottom:8px" id="lic-status-emoji">⏳</div>
+            <div style="font-weight:900;font-size:16px" id="lic-status-msg">Processando...</div>
+            <div style="font-size:12px;color:#888;margin-top:6px" id="lic-status-sub"></div>
+          </div>
+        </div>
+      </div>
+    </div>`);
+    // Salvar estado global
+    window._licPayPlanosArr=planos;
+    window._licPayLojaKey=lojaKey;
+    window._licPayLojaNome=nomeLoja;
+  });
+}
+function closeLicPayModal(){
+  if(_mpPaymentCheckInterval){clearInterval(_mpPaymentCheckInterval);_mpPaymentCheckInterval=null;}
+  const m=document.getElementById('lic-pay-modal');if(m)m.remove();
+}
+function voltarPlanosLic(){
+  document.getElementById('lic-planos-grid').classList.remove('hidden');
+  document.getElementById('lic-pay-brick-area').classList.add('hidden');
+  // Limpar brick anterior
+  const brick=document.getElementById('lic-mp-brick');if(brick)brick.innerHTML='';
+  if(_mpPaymentCheckInterval){clearInterval(_mpPaymentCheckInterval);_mpPaymentCheckInterval=null;}
+  // Deselect buttons
+  document.querySelectorAll('[id^=plano-btn-]').forEach(b=>{b.classList.remove('plano-sel');b.style.borderColor='#e2e8f0';b.style.background='#f8fafc';});
+}
+function selecionarPlanoLic(idx){
+  const planos=window._licPayPlanosArr||[];
+  const plano=planos[idx];
+  if(!plano)return;
+  // Highlight selecionado
+  document.querySelectorAll('[id^=plano-btn-]').forEach((b,i)=>{
+    const cor=planos[i]?.cor||'#e2e8f0';
+    if(i===idx){b.classList.add('plano-sel');b.style.borderColor=cor;b.style.background='#f0f9ff';}
+    else{b.classList.remove('plano-sel');b.style.borderColor='#e2e8f0';b.style.background='#f8fafc';}
+  });
+  // Esconder grid e mostrar brick
+  document.getElementById('lic-planos-grid').classList.add('hidden');
+  document.getElementById('lic-pay-brick-area').classList.remove('hidden');
+  document.getElementById('lic-pay-status').classList.add('hidden');
+  document.getElementById('lic-plano-selecionado').innerHTML=`${plano.emoji} <span style="color:${plano.cor}">${plano.label}</span> — <strong>R$ ${plano.valor.toFixed(2)}</strong>`;
+  document.getElementById('lic-mp-brick').innerHTML='<div style="text-align:center;padding:20px;color:#888;font-size:12px;font-weight:700">⏳ Carregando checkout seguro...</div>';
+  // Criar preferência MP via API
+  criarPreferenciaMP(plano, window._licPayLojaKey, window._licPayLojaNome);
+}
+
+// ─── MERCADO PAGO: GERAR PIX ─────────────────────────────
+async function criarPreferenciaMP(plano, lojaKey, lojaNome){
+  // Chamada direta à API de pagamentos Pix — funciona 100% do frontend
+  const brickDiv=document.getElementById('lic-mp-brick');
+  if(brickDiv) brickDiv.innerHTML='<div style="text-align:center;padding:24px 0;color:#888;font-size:12px;font-weight:700">⏳ Gerando QR Code Pix...</div>';
+  const idempotency=lojaKey+'_'+plano.dias+'_'+Date.now();
+  try{
+    const body={
+      transaction_amount: plano.valor,
+      description: 'Licença White Gold OMNI — '+plano.label+' ('+lojaNome+')',
+      payment_method_id: 'pix',
+      external_reference: idempotency,
+      metadata:{ lojaKey, dias:plano.dias, lojaNome },
+      payer:{ email:'pagamento@whitegoldomni.app', first_name:'Lojista', last_name:'WhiteGold' }
+    };
+    const resp=await fetch('https://api.mercadopago.com/v1/payments',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+MP_ACCESS_TOKEN,
+        'X-Idempotency-Key': idempotency
+      },
+      body:JSON.stringify(body)
+    });
+    const payment=await resp.json();
+    if(!resp.ok||!payment.id){
+      throw new Error(payment.message||payment.error||'Erro ao gerar Pix ('+resp.status+')');
+    }
+    if(payment.status==='pending'||payment.status==='in_process'){
+      // Pix gerado com sucesso — exibir QR
+      exibirQRCodePix(payment, plano, lojaKey);
+    } else if(payment.status==='approved'){
+      // Raro mas possível
+      await ativarLicencaAposPagamento(lojaKey, plano.dias, payment.id, plano.valor);
+    } else {
+      throw new Error(payment.status_detail||payment.status||'Pix não gerado');
+    }
+  }catch(err){
+    console.error('Erro Pix MP:',err);
+    registrarTentativaFalha(plano, lojaKey, null, err.message||'Erro desconhecido');
+    mostrarFallbackPagamento(plano, lojaNome);
+  }
+}
+
+// ─── EXIBIR QR CODE PIX NA TELA ──────────────────────────
+function exibirQRCodePix(payment, plano, lojaKey){
+  const qrB64=payment.point_of_interaction?.transaction_data?.qr_code_base64||'';
+  const qrCopy=payment.point_of_interaction?.transaction_data?.qr_code||'';
+  const paymentId=payment.id;
+  const brickDiv=document.getElementById('lic-mp-brick');
+  if(!brickDiv)return;
+
+  brickDiv.innerHTML=`
+    <div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:18px;text-align:center">
+      <div style="font-weight:900;font-size:14px;color:#15803d;margin-bottom:4px">📱 Pague com Pix</div>
+      <div style="font-size:11px;color:#166534;font-weight:700;margin-bottom:14px">
+        Escaneie o QR Code ou copie o código abaixo.<br>
+        A licença é ativada <strong>automaticamente</strong> após confirmação.
+      </div>
+      ${qrB64
+        ? `<img src="data:image/png;base64,${qrB64}" style="width:200px;height:200px;border-radius:12px;border:3px solid #dcfce7;margin-bottom:14px">`
+        : `<div style="width:200px;height:200px;background:#dcfce7;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:14px">📲</div>`
+      }
+      <div style="font-size:28px;font-weight:900;color:#15803d;margin-bottom:4px">R$ ${plano.valor.toFixed(2)}</div>
+      <div style="font-size:10px;color:#166534;font-weight:700;margin-bottom:14px">${plano.label} · ID #${paymentId}</div>
+      ${qrCopy ? `
+      <div style="background:#fff;border:1.5px dashed #16a34a;border-radius:10px;padding:10px;margin-bottom:12px;word-break:break-all;font-size:10px;font-family:monospace;color:#166534;max-height:60px;overflow:hidden" id="pix-copy-code">${qrCopy}</div>
+      <button onclick="copiarCodigoPix('${qrCopy.replace(/'/g,"\'")}',this)" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:900;cursor:pointer;width:100%;margin-bottom:10px">📋 Copiar código Pix</button>
+      ` : ''}
+      <div id="pix-aguardando" style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:700;color:#16a34a">
+        <div style="width:10px;height:10px;background:#16a34a;border-radius:50%;animation:pulse 1.4s ease-in-out infinite"></div>
+        Aguardando pagamento...
+      </div>
+      <div style="font-size:10px;color:#999;font-weight:700;margin-top:8px">QR Code válido por 30 minutos</div>
+      <button onclick="verificarManualmente(${paymentId},'${lojaKey}',${plano.dias},${plano.valor})" style="background:none;border:1.5px solid #16a34a;border-radius:10px;padding:8px 16px;font-size:11px;font-weight:900;color:#16a34a;cursor:pointer;width:100%;margin-top:10px">
+        🔍 Já paguei — verificar agora
+      </button>
+    </div>`;
+
+  // Salvar pagamento pendente no Firebase (persiste se modal fechar)
+  const pendKey=lojaKey+'_pix_pending';
+  db.ref('pix-pending/'+lojaKey).set({
+    paymentId, dias:plano.dias, valor:plano.valor,
+    lojaNome:window._licPayLojaNome||lojaKey,
+    ts:Date.now()
+  });
+  // Iniciar monitoramento automático
+  aguardarAprovacaoMP(paymentId, lojaKey, plano.dias, plano.valor);
+}
+
+function copiarCodigoPix(codigo, btn){
+  navigator.clipboard.writeText(codigo).then(()=>{
+    btn.innerText='✅ Copiado!';
+    btn.style.background='#0f766e';
+    setTimeout(()=>{btn.innerText='📋 Copiar código Pix';btn.style.background='#16a34a';},2500);
+  }).catch(()=>{
+    // Fallback para dispositivos que não suportam clipboard API
+    const ta=document.createElement('textarea');
+    ta.value=codigo;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.innerText='✅ Copiado!';
+    setTimeout(()=>btn.innerText='📋 Copiar código Pix',2500);
+  });
+}
+
+function registrarTentativaFalha(plano, lojaKey, paymentId, motivo){
+  const nowFail=Date.now();
+  db.ref('payment-attempts/'+lojaKey).push({
+    paymentId:paymentId||null,
+    status:'error',
+    status_detail:motivo||'Erro desconhecido',
+    valor:plano?.valor||0,
+    dias:plano?.dias||0,
+    metodo:'pix',
+    ts:nowFail,
+    dia:new Date(nowFail).toLocaleDateString('pt-BR'),
+    hora:new Date(nowFail).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    lojaNome:window._licPayLojaNome||''
+  });
+  db.ref('admin-notifications').push({
+    tipo:'falha_pagamento',
+    lojaKey,
+    lojaNome:window._licPayLojaNome||'',
+    detalhe:motivo,
+    valor:plano?.valor||0,
+    dias:plano?.dias||0,
+    metodo:'pix',
+    ts:nowFail,
+    dia:new Date(nowFail).toLocaleDateString('pt-BR'),
+    lido:false
+  });
+}
+
+// ─── ATIVAR LICENÇA APÓS PAGAMENTO ───────────────────────
+async function ativarLicencaAposPagamento(lojaKey, dias, paymentId, valor){
+  const now=Date.now();
+  const nowDia=new Date(now).toLocaleDateString('pt-BR');
+  const nowHora=new Date(now).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  try{
+    // Buscar licença atual para somar se ainda válida
+    const snap=await db.ref('stores/'+lojaKey+'/licenseExpiry').once('value');
+    // Sempre conta a partir de HOJE — nunca acumula em cima de licença existente
+    const novoExpiry=now+(dias*MS_DAY);
+    // Gravar nova licença
+    await db.ref('stores/'+lojaKey).update({
+      licenseExpiry:novoExpiry,
+      lastPayment:{paymentId:paymentId||'manual', valor:valor||0, dias, ts:now, dia:nowDia}
+    });
+    // Registrar pagamento aprovado
+    await db.ref('payments/'+lojaKey).push({
+      paymentId:paymentId||'manual',
+      dias, valor:valor||0, metodo:'pix',
+      ts:now, dia:nowDia, hora:nowHora,
+      lojaNome:window._licPayLojaNome||lojaKey,
+      status:'approved'
+    });
+    // Notificar admin
+    db.ref('admin-notifications').push({
+      tipo:'pagamento', lojaKey,
+      lojaNome:window._licPayLojaNome||lojaKey,
+      dias, paymentId:paymentId||'manual',
+      valor:valor||0, ts:now, dia:nowDia, lido:false
+    });
+    // UI: mostrar sucesso e desbloquear
+    mostrarStatusPagamento('ok','✅','Licença ativada!',
+      'Renovado por '+dias+' dias. Acesso liberado! 🎉', novoExpiry);
+    // Se estava na tela bloqueada, desbloquear
+    const overlay=document.getElementById('blocked-overlay');
+    if(overlay&&!overlay.classList.contains('hidden')){
+      setTimeout(()=>{
+        hideBlocked();
+        gotoView('view-merchant','nav-login');
+        renderLicBanner({licenseExpiry:novoExpiry});
+      },2000);
+    }
+    // Fechar modal e atualizar banner
+    setTimeout(()=>{
+      const m=document.getElementById('lic-pay-modal');if(m)m.remove();
+      if(curLoja) db.ref('stores/'+lojaKey).once('value',s=>{if(s.val())renderLicBanner(s.val());});
+    },3000);
+  }catch(err){
+    console.error('Erro ao ativar licença:',err);
+    mostrarStatusPagamento('erro','❌','Erro ao ativar',
+      'Pagamento recebido mas erro ao liberar. Anote o ID: '+(paymentId||'--')+' e contate o suporte.');
+  }
+}
+
+// ─── MONITORAR PIX PENDENTE ───────────────────────────────
+
+function verificarManualmente(paymentId, lojaKey, dias, valor){
+  const btn=event.target;
+  btn.innerText='⏳ Verificando...';btn.disabled=true;
+  fetch('https://api.mercadopago.com/v1/payments/'+paymentId,{
+    headers:{'Authorization':'Bearer '+MP_ACCESS_TOKEN}
+  }).then(r=>r.json()).then(async p=>{
+    if(p.status==='approved'){
+      clearInterval(_mpPaymentCheckInterval);
+      db.ref('pix-pending/'+lojaKey).remove();
+      await ativarLicencaAposPagamento(lojaKey, dias, paymentId, valor);
+    } else {
+      btn.innerText='🔍 Já paguei — verificar agora';
+      btn.disabled=false;
+      const aguEl=document.getElementById('pix-aguardando');
+      if(aguEl) aguEl.innerHTML='<span style="color:#ca8a04">⏳ Ainda não confirmado pelo banco ('+p.status+'). Aguarde alguns segundos...</span>';
+    }
+  }).catch(()=>{
+    btn.innerText='🔍 Já paguei — verificar agora';
+    btn.disabled=false;
+  });
+}
+
+function aguardarAprovacaoMP(paymentId, lojaKey, dias, valor){
+  let tentativas=0;
+  const maxTentativas=180; // 30 min (a cada 10s)
+  if(_mpPaymentCheckInterval)clearInterval(_mpPaymentCheckInterval);
+  _mpPaymentCheckInterval=setInterval(async()=>{
+    tentativas++;
+    // Atualizar contador visual
+    const aguEl=document.getElementById('pix-aguardando');
+    if(aguEl){
+      const min=Math.floor((maxTentativas-tentativas)*10/60);
+      aguEl.innerHTML=`<div style="width:10px;height:10px;background:#16a34a;border-radius:50%;animation:pulse 1.4s ease-in-out infinite"></div> Aguardando pagamento... ${min>0?'(~'+min+'min restante)':''}`;
+    }
+    if(tentativas>maxTentativas){
+      clearInterval(_mpPaymentCheckInterval);
+      const aguEl2=document.getElementById('pix-aguardando');
+      if(aguEl2) aguEl2.innerHTML='<span style="color:#e62222">⏱️ QR Code expirado. Feche e gere um novo.</span>';
+      return;
+    }
+    try{
+      const r=await fetch('https://api.mercadopago.com/v1/payments/'+paymentId,{
+        headers:{'Authorization':'Bearer '+MP_ACCESS_TOKEN}
+      });
+      const p=await r.json();
+      if(p.status==='approved'){
+        clearInterval(_mpPaymentCheckInterval);
+        // Esconder QR e mostrar sucesso
+        const brickDiv=document.getElementById('lic-mp-brick');
+        if(brickDiv) brickDiv.innerHTML='';
+        const valorPago=p.transaction_amount||valor||0;
+        // Limpar pendente
+        db.ref('pix-pending/'+lojaKey).remove();
+        await ativarLicencaAposPagamento(lojaKey, dias, paymentId, valorPago);
+      } else if(p.status==='cancelled'||p.status==='rejected'){
+        clearInterval(_mpPaymentCheckInterval);
+        const aguEl2=document.getElementById('pix-aguardando');
+        if(aguEl2) aguEl2.innerHTML='<span style="color:#e62222">❌ Pagamento cancelado. Feche e tente novamente.</span>';
+      }
+    }catch(e){console.warn('Check MP:',e);}
+  },10000); // checar a cada 10s
+}
+
+// ─── STATUS VISUAL ────────────────────────────────────────
+function mostrarStatusPagamento(tipo,emoji,msg,sub,expiry){
+  const brickDiv=document.getElementById('lic-mp-brick');
+  const statusDiv=document.getElementById('lic-pay-status');
+  if(!statusDiv)return;
+  if(tipo!=='pix'&&brickDiv)brickDiv.innerHTML='';
+  statusDiv.classList.remove('hidden');
+  document.getElementById('lic-status-emoji').innerText=emoji;
+  document.getElementById('lic-status-msg').innerText=msg;
+  const subEl=document.getElementById('lic-status-sub');
+  subEl.innerText=sub||(expiry?'Vencimento: '+new Date(expiry).toLocaleDateString('pt-BR'):'');
+  if(tipo==='ok'){
+    statusDiv.style.background='#dcfce7';statusDiv.style.borderRadius='14px';
+  } else if(tipo==='erro'){
+    statusDiv.style.background='#fee2e2';statusDiv.style.borderRadius='14px';
+  } else {
+    statusDiv.style.background='#eff6ff';statusDiv.style.borderRadius='14px';
+  }
+}
+
+// ─── FALLBACK: PIX ESTÁTICO + WA ─────────────────────────
+function gerarPayloadPixEstatico(chave, nome, cidade, valor, txid){
+  // Monta payload EMV BR Code com valor fixo
+  function tlv(tag,val){return tag+String(val.length).padStart(2,'0')+val;}
+  const ma=tlv('00','br.gov.bcb.pix')+tlv('01',chave);
+  const merchantAcct=tlv('26',ma);
+  const txRef=tlv('05',txid.slice(0,25).replace(/[^a-zA-Z0-9]/g,''));
+  const addData=tlv('62',txRef);
+  const semCRC=tlv('00','01')+merchantAcct+tlv('52','0000')+tlv('53','986')+
+    tlv('54',valor.toFixed(2))+tlv('58','BR')+tlv('59',nome.slice(0,25))+
+    tlv('60',cidade.slice(0,15))+addData+tlv('63','0000');
+  // CRC16-CCITT
+  let crc=0xFFFF;
+  for(let i=0;i<semCRC.length;i++){
+    crc^=semCRC.charCodeAt(i)<<8;
+    for(let j=0;j<8;j++) crc=crc&0x8000?(crc<<1)^0x1021:(crc<<1);
+    crc&=0xFFFF;
+  }
+  return semCRC.slice(0,-4)+crc.toString(16).toUpperCase().padStart(4,'0');
+}
+
+function mostrarFallbackPagamento(plano, lojaNome){
+  const brickDiv=document.getElementById('lic-mp-brick');
+  if(!brickDiv)return;
+  const txid='WG'+Date.now().toString(36).toUpperCase();
+  const pixPayload=gerarPayloadPixEstatico(MP_PIX_KEY,MP_TITULAR,'Santos',plano.valor,txid);
+  const waMsg=encodeURIComponent('💳 Renovar '+plano.label+' — R$ '+plano.valor.toFixed(2)+' — Loja: '+lojaNome+' — TXN: '+txid);
+
+  // Gerar QR Code via API pública (sem dependência)
+  const qrApiUrl='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(pixPayload);
+
+  brickDiv.innerHTML=`
+    <div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:18px;text-align:center">
+      <div style="font-weight:900;font-size:13px;color:#15803d;margin-bottom:3px">📱 Pague com Pix</div>
+      <div style="font-size:10px;color:#166534;font-weight:700;margin-bottom:12px">Escaneie o QR ou copie o código. Após pagar, envie o comprovante pelo WA.</div>
+      <img src="${qrApiUrl}" style="width:190px;height:190px;border-radius:10px;border:2px solid #dcfce7;margin-bottom:10px">
+      <div style="font-size:26px;font-weight:900;color:#15803d;margin-bottom:8px">R$ ${plano.valor.toFixed(2)}</div>
+      <div style="background:#fff;border:1.5px dashed #16a34a;border-radius:10px;padding:9px;margin-bottom:10px;font-size:9px;font-family:monospace;color:#166534;word-break:break-all">${pixPayload}</div>
+      <button onclick="copiarCodigoPix('${pixPayload.replace(/'/g,"\'")}',this)" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:900;cursor:pointer;width:100%;margin-bottom:8px">📋 Copiar código Pix</button>
+      <a href="https://wa.me/${OWNER_WA}?text=${waMsg}" target="_blank" style="display:block;background:#000;color:#fff;border-radius:10px;padding:10px;font-size:12px;font-weight:900;text-decoration:none">📲 Enviar comprovante pelo WA</a>
+      <div style="font-size:9px;color:#999;font-weight:700;margin-top:8px">Ref: ${txid} · Ativação manual em até 15min</div>
+    </div>`;
 }
 function renderEditLic(d){
   const l=getLic(d),exp=d.licenseExpiry?new Date(d.licenseExpiry).toLocaleDateString('pt-BR'):'Não ativada';
@@ -1760,10 +2490,15 @@ function renderEditLic(d){
 }
 function showBlocked(name){
   document.getElementById('bl-store-name').innerText=name||'';
-  document.getElementById('bl-wa-link').href='https://wa.me/'+OWNER_WA+'?text='+encodeURIComponent('Renovar licença — '+(name||''));
+  document.getElementById('bl-wa-link').href='https://wa.me/'+OWNER_WA+'?text='+encodeURIComponent('🔒 Renovar licença — '+(name||''));
+  window._blockedLojaNome=name||'';
   document.getElementById('blocked-overlay').classList.remove('hidden');
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.getElementById('bottom-nav').style.display='none';
+}
+function openLicPayModalBlocked(){
+  // Abre modal de pagamento mesmo com a loja bloqueada
+  openLicPayModal(window._blockedLojaNome||document.getElementById('bl-store-name').innerText||'');
 }
 function hideBlocked(){document.getElementById('blocked-overlay').classList.add('hidden');document.getElementById('bottom-nav').style.display='';}
 
@@ -1794,6 +2529,12 @@ function previewProdImg(input){
 function getImgSrc(b64field,urlField){return b64field||urlField||'';}
 
 // ─── CLIENTE: LOJAS ─────────────────────────────────────
+// ─── HAVERSINE DISTANCE ──────────────────────────────────
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
 function loadStores(){
   db.ref('stores').on('value',snap=>{
     const el=document.getElementById('client-list-stores');el.innerHTML='';
@@ -1802,6 +2543,12 @@ function loadStores(){
     snap.forEach(c=>{
       const d=c.val();
       if(!getLic(d).ok)return;
+      // Filtrar por raio máximo de entrega se o cliente tem GPS
+      if(userGPS&&d.coords&&d.coords.lat&&d.coords.lon){
+        const distKm=haversine(userGPS.lat,userGPS.lon,d.coords.lat,d.coords.lon);
+        const kmMax=parseFloat(d.kmMax||20);
+        if(distKm>kmMax)return; // loja muito longe — não mostrar
+      }
       vis++;
       const div=document.createElement('div');div.className='store-card fade-in';
       const ini=d.name.split(' ').map(w=>w[0]||'').join('').slice(0,3).toUpperCase();
@@ -1811,7 +2558,7 @@ function loadStores(){
       div.innerHTML=`${imgH}${phH}
         <div style="padding:14px">
           <div style="font-weight:900;font-size:14px;text-transform:uppercase;margin-bottom:3px">${d.name}</div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:4px">Frete a partir de R$ ${parseFloat(d.basePrice||7).toFixed(2)}</div>
+          <div style="font-size:11px;opacity:.5;margin-bottom:4px">Frete a partir de R$ ${parseFloat(d.basePrice||7).toFixed(2)}${(userGPS&&d.coords&&d.coords.lat)?` · 📍 ${haversine(userGPS.lat,userGPS.lon,d.coords.lat,d.coords.lon).toFixed(1)}km`:''}</div>
           <div id="stars-${c.key}" style="font-size:12px;margin-bottom:6px;font-weight:700;color:#ca8a04;cursor:pointer" onclick="openPubReviewsById('${c.key}')"></div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-black" style="flex:1" onclick="openClientMenu('${c.key}')">Ver Cardápio →</button>
@@ -2032,18 +2779,25 @@ function enviarWA(){
   const fone=document.getElementById('co-fone').value.trim();
   const addr=document.getElementById('co-addr').value.trim();
   const temGPS=!!userGPS;
-  // Validação obrigatória
+  // Validação obrigatória — GPS é obrigatório
   let erros=[];
   if(!nome) erros.push('nome');
+  if(!temGPS) erros.push('gps'); // GPS obrigatório
   if(!addr&&!temGPS) erros.push('endereco');
   if(erros.length){
     if(erros.includes('nome')){
       document.getElementById('co-nome').style.borderColor='var(--red)';
       document.getElementById('co-nome').focus();
     }
+    if(erros.includes('gps')){
+      const errGPS=document.getElementById('co-val-err');
+      errGPS.innerText='📡 GPS obrigatório! Clique em "Localizar pelo GPS" antes de confirmar.';
+      errGPS.classList.remove('hidden');
+      document.getElementById('btn-gps').style.boxShadow='0 0 0 3px var(--red)';
+      return;
+    }
     if(erros.includes('endereco')){
       document.getElementById('co-addr').style.borderColor='var(--red)';
-      if(!erros.includes('nome')) document.getElementById('co-addr').focus();
     }
     document.getElementById('co-val-err').classList.remove('hidden');
     return;
@@ -2051,6 +2805,7 @@ function enviarWA(){
   document.getElementById('co-val-err').classList.add('hidden');
   document.getElementById('co-nome').style.borderColor='';
   document.getElementById('co-addr').style.borderColor='';
+  document.getElementById('btn-gps').style.boxShadow='';
   const endFinal=addr||(temGPS?'(via GPS)':'');
   const totalStr=document.getElementById('co-vt').innerText;
   const frete=parseFloat((document.getElementById('co-vf').innerText.match(/[\d.]+/)||['0'])[0])||0;
@@ -2066,35 +2821,12 @@ function enviarWA(){
 }
 
 function enviarWASemGPS(){
-  const nome=document.getElementById('co-nome').value.trim();
-  const fone=document.getElementById('co-fone').value.trim();
-  const addr=document.getElementById('co-addr').value.trim();
-  // Validação obrigatória
-  let erros=[];
-  if(!nome) erros.push('nome');
-  if(!addr) erros.push('endereco');
-  if(erros.length){
-    if(erros.includes('nome')){
-      document.getElementById('co-nome').style.borderColor='var(--red)';
-      document.getElementById('co-nome').focus();
-    }
-    if(erros.includes('endereco')){
-      document.getElementById('co-addr').style.borderColor='var(--red)';
-      if(!erros.includes('nome')) document.getElementById('co-addr').focus();
-    }
-    document.getElementById('co-val-err').classList.remove('hidden');
-    return;
-  }
-  document.getElementById('co-val-err').classList.add('hidden');
-  document.getElementById('co-nome').style.borderColor='';
-  document.getElementById('co-addr').style.borderColor='';
-  const totalStr='R$ '+cartTotal.toFixed(2);
-  const trocoVal=_clientPayMethod==='dinheiro'?document.getElementById('co-troco')?.value||'':'';
-  saveDeliveryOrder(nome,fone,addr,cartTotal,0,0,(pedidoId,hora)=>{
-    const msg=buildWAMsg(nome,fone,addr,totalStr,null,_clientPayMethod,trocoVal,0);
-    window.open(`https://wa.me/${storeData?.whatsapp||''}?text=${encodeURIComponent(msg)}`,'_blank');
-    showOrderSuccess();
-  });
+  // GPS é obrigatório — redireciona para buscar GPS
+  const errEl=document.getElementById('co-val-err');
+  errEl.innerText='📡 Por favor, use o GPS para confirmar sua localização antes de pedir.';
+  errEl.classList.remove('hidden');
+  document.getElementById('btn-gps').style.boxShadow='0 0 0 3px var(--red)';
+  document.getElementById('btn-gps').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 // ─── GARÇOM: LOGIN ──────────────────────────────────────
@@ -2234,6 +2966,61 @@ function msgEsqueciSenha(){
 }
 
 // ─── LOJISTA LOGIN ──────────────────────────────────────
+// ─── MERCHANT AUTO-CADASTRO ──────────────────────────────
+function buscarGPSSignup(){
+  if(!navigator.geolocation){alert('GPS não disponível neste dispositivo.');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById('ms-lat').value=pos.coords.latitude.toFixed(6);
+    document.getElementById('ms-lon').value=pos.coords.longitude.toFixed(6);
+    alert('✅ Localização encontrada!');
+  },()=>alert('❌ Não foi possível obter o GPS. Preencha manualmente.'));
+}
+function doMerchantSignup(){
+  const nome=document.getElementById('ms-nome').value.trim();
+  const pass=document.getElementById('ms-pass').value;
+  const pass2=document.getElementById('ms-pass2').value;
+  const wa=document.getElementById('ms-wa').value.trim().replace(/\D/g,'');
+  const cidade=document.getElementById('ms-cidade').value.trim();
+  const lat=parseFloat(document.getElementById('ms-lat').value)||0;
+  const lon=parseFloat(document.getElementById('ms-lon').value)||0;
+  const errEl=document.getElementById('ms-err');
+  errEl.classList.add('hidden');
+  if(!nome){errEl.innerText='Informe o nome da loja!';errEl.classList.remove('hidden');return;}
+  if(pass.length<6){errEl.innerText='Senha deve ter pelo menos 6 caracteres!';errEl.classList.remove('hidden');return;}
+  if(pass!==pass2){errEl.innerText='As senhas não coincidem!';errEl.classList.remove('hidden');return;}
+  if(!wa||wa.length<10){errEl.innerText='Informe um WhatsApp válido (com DDI)!';errEl.classList.remove('hidden');return;}
+  if(!lat||!lon){errEl.innerText='Informe sua localização (lat/lon ou use o GPS)!';errEl.classList.remove('hidden');return;}
+  // Verificar se já existe loja com mesmo nome
+  db.ref('stores').orderByChild('name').equalTo(nome).once('value',snap=>{
+    if(snap.exists()){errEl.innerText='Já existe uma loja com este nome. Escolha outro.';errEl.classList.remove('hidden');return;}
+    // 30 dias de licença grátis
+    const trialExpiry=Date.now()+(30*24*60*60*1000);
+    const novaLoja={
+      name:nome,pass,caixaPass:'0000',
+      whatsapp:wa,
+      coords:{lat,lon},
+      cidade,
+      basePrice:7,baseKm:3,kmExtra:2,kmMax:20,
+      mesasCount:5,garcomCanPay:false,
+      licenseExpiry:trialExpiry,
+      trialUsed:true,
+      createdAt:Date.now()
+    };
+    const newRef=db.ref('stores').push();
+    newRef.set(novaLoja).then(()=>{
+      // Login automático
+      curLoja=newRef.key;
+      document.getElementById('m-title').innerText=nome;
+      try{localStorage.setItem('wg_merchant',JSON.stringify({u:nome,p:pass,key:newRef.key}));}catch(e){}
+      gotoView('view-merchant',null);
+      renderLicBanner(novaLoja);
+      loadDelivery();
+      watchNotifications(newRef.key);
+      watchKitchenBadge();
+      alert('🎉 Loja criada! Você tem 30 dias de teste grátis. Bom proveito!');
+    });
+  });
+}
 function doLogin(){
   const u=document.getElementById('l-user').value.trim();
   const p=document.getElementById('l-pass').value;
@@ -2241,9 +3028,18 @@ function doLogin(){
   const errMsg=document.getElementById('l-err-msg');
   errEl.classList.add('hidden');
   if(!u||!p)return;
+  // Lockout check (lojista)
+  const _mWait=_checkLockout('merchant_'+u);
+  if(_mWait>0){
+    errMsg.innerText=`🔒 Bloqueado por tentativas incorretas. Aguarde ${_mWait}s.`;
+    errEl.classList.remove('hidden');
+    let _mr=_mWait;const _mt=setInterval(()=>{_mr--;if(_mr<=0){clearInterval(_mt);errEl.classList.add('hidden');}else errMsg.innerText=`🔒 Bloqueado. Aguarde ${_mr}s.`;},1000);
+    return;
+  }
   db.ref('stores').orderByChild('name').equalTo(u).once('value',snap=>{
     if(!snap.exists()){
-      errMsg.innerText='Loja "'+u+'" não encontrada no sistema.';
+      _recordFailedLogin('merchant_'+u);
+      errMsg.innerText='Loja "'+u+'" não encontrada. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
       document.getElementById('l-err-btn-cadastro').style.display='';
       document.getElementById('l-err-btn-senha').style.display='none';
       errEl.classList.remove('hidden');
@@ -2252,12 +3048,14 @@ function doLogin(){
     snap.forEach(s=>{
       const d=s.val();
       if(d.pass!==p){
-        errMsg.innerText='Senha incorreta para "'+u+'"!';
+        _recordFailedLogin('merchant_'+u);
+        errMsg.innerText='Senha incorreta. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
         document.getElementById('l-err-btn-cadastro').style.display='none';
         document.getElementById('l-err-btn-senha').style.display='';
         errEl.classList.remove('hidden');
         return;
       }
+      _resetLoginAttempts('merchant_'+u);
       errEl.classList.add('hidden');
       if(!getLic(d).ok){showBlocked(d.name);return;}
       curLoja=s.key;
@@ -2265,24 +3063,94 @@ function doLogin(){
       const remember=document.getElementById('l-remember')?.checked;
       try{if(remember)localStorage.setItem('wg_merchant',JSON.stringify({u,p,key:s.key}));else localStorage.removeItem('wg_merchant');}catch(e){}
       gotoView('view-merchant',null);renderLicBanner(d);loadDelivery();watchNotifications(s.key);
+      verificarPixPendente(s.key);
     });
   });
 }
 
 // ─── ADMIN LOGIN ────────────────────────────────────────
+// Admin login com lockout
+const _admLoginState={count:0,lockedUntil:0,timer:null};
 function doAdminLogin(){
-  document.getElementById('adm-err').classList.add('hidden');
-  if(document.getElementById('adm-pass').value===ADMIN_PASS){gotoView('view-admin',null);loadAdminData();}
-  else document.getElementById('adm-err').classList.remove('hidden');
+  const errEl=document.getElementById('adm-err');
+  const errMsg=document.getElementById('adm-err-msg');
+  const errSub=document.getElementById('adm-err-sub');
+  errEl.classList.add('hidden');
+  // Verificar bloqueio
+  const now=Date.now();
+  if(now<_admLoginState.lockedUntil){
+    const rem=Math.ceil((_admLoginState.lockedUntil-now)/1000);
+    errMsg.innerText='🔒 Painel bloqueado';
+    errSub.innerText='Aguarde '+rem+'s para tentar novamente.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  // Verificar senha — suporta senha no Firebase também
+  const senhaDigitada=document.getElementById('adm-pass').value;
+  db.ref('admin-config/masterPass').once('value',snap=>{
+    const senhaCorreta=snap.val()||ADMIN_PASS;
+    if(senhaDigitada===senhaCorreta){
+      // Sucesso — zerar tentativas
+      _admLoginState.count=0;
+      _admLoginState.lockedUntil=0;
+      if(_admLoginState.timer){clearInterval(_admLoginState.timer);_admLoginState.timer=null;}
+      document.getElementById('adm-pass').value='';
+      gotoView('view-admin',null);
+      loadAdminData();
+      loadAdminPayNotif();
+    } else {
+      // Falha
+      _admLoginState.count++;
+      const restantes=5-_admLoginState.count;
+      if(_admLoginState.count>=5){
+        // Bloquear por 1 minuto
+        _admLoginState.lockedUntil=Date.now()+60000;
+        _admLoginState.count=0;
+        errMsg.innerText='🔒 Muitas tentativas incorretas!';
+        errSub.innerText='Painel bloqueado por 60 segundos.';
+        errEl.classList.remove('hidden');
+        // Contador regressivo
+        let rem=60;
+        if(_admLoginState.timer)clearInterval(_admLoginState.timer);
+        _admLoginState.timer=setInterval(()=>{
+          rem--;
+          if(rem<=0){
+            clearInterval(_admLoginState.timer);_admLoginState.timer=null;
+            errEl.classList.add('hidden');
+          } else {
+            errSub.innerText='Desbloqueio em '+rem+'s...';
+          }
+        },1000);
+        // Notificar no Firebase
+        db.ref('admin-notifications').push({
+          tipo:'tentativa_admin',
+          ts:Date.now(),
+          dia:new Date().toLocaleDateString('pt-BR'),
+          hora:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+          lido:false
+        });
+      } else {
+        errMsg.innerText='❌ Senha incorreta';
+        errSub.innerText=restantes+' tentativa'+(restantes===1?'':'s')+' restante'+(restantes===1?'':'s')+' antes do bloqueio.';
+        errEl.classList.remove('hidden');
+      }
+    }
+  });
 }
 function aTab(id,btn){
-  ['lojas','relatorio','clientes','nova'].forEach(t=>document.getElementById('adm-'+t).classList.add('hidden'));
+  ['lojas','relatorio','clientes','nova','pagamentos','configadm'].forEach(t=>{
+    const el=document.getElementById('adm-'+t);if(el)el.classList.add('hidden');
+  });
   document.getElementById('adm-'+id).classList.remove('hidden');
   document.querySelectorAll('#view-admin .tab-item').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(id==='relatorio')loadRelatorio();
   if(id==='clientes')loadAdminClients();
+  if(id==='configadm')loadAdmConfig();
+  if(id==='lojas'){loadAdminStores();loadAdminPayNotif();}
+  if(id==='pagamentos')loadAdminPagamentos();
 }
+function loadAdminStores(){loadAdminData();}
 function loadAdminData(){
   db.ref('stores').on('value',snap=>{
     const list=document.getElementById('adm-list-stores');list.innerHTML='';
@@ -2298,6 +3166,8 @@ function loadAdminData(){
       row.innerHTML=`<div style="display:flex;align-items:center;gap:10px">${imgSrc?`<img src="${imgSrc}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:2px solid #eee;flex-shrink:0">`:''}<div><div style="font-weight:900;font-size:13px;text-transform:uppercase">${d.name}</div><div style="font-size:10px;opacity:.5;margin-top:1px">Venc: ${exp}</div><div style="margin-top:4px">${lp}</div></div></div><button class="btn btn-gold btn-xs" onclick="openEdit('${k}')">✏️ Editar</button>`;
       list.appendChild(row);
     });
+    // Mostrar notificações de pagamento no topo
+    loadAdminPayNotif();
   });
 }
 
@@ -2424,6 +3294,29 @@ function doClientRegister(){
   });
 }
 
+// ─── LOCKOUT SYSTEM ─────────────────────────────────────
+const _loginAttempts={};
+function _checkLockout(key){
+  const now=Date.now();
+  if(!_loginAttempts[key]) _loginAttempts[key]={count:0,lockedUntil:0};
+  const a=_loginAttempts[key];
+  if(now<a.lockedUntil) return Math.ceil((a.lockedUntil-now)/1000);
+  return 0;
+}
+function _recordFailedLogin(key){
+  if(!_loginAttempts[key]) _loginAttempts[key]={count:0,lockedUntil:0};
+  const a=_loginAttempts[key];
+  a.count++;
+  if(a.count>=5){a.lockedUntil=Date.now()+60000;a.count=0;}
+}
+function _resetLoginAttempts(key){
+  _loginAttempts[key]={count:0,lockedUntil:0};
+}
+function _attemptsLeft(key){
+  if(!_loginAttempts[key])return 5;
+  return Math.max(0,5-(_loginAttempts[key].count||0));
+}
+
 function doClientLogin(){
   const id=document.getElementById('cl-id').value.trim();
   const pass=document.getElementById('cl-pass').value;
@@ -2431,8 +3324,29 @@ function doClientLogin(){
   errEl.classList.add('hidden');
   if(!id||!pass)return;
   const key=sanitizeId(id);
+  // Lockout check
+  const wait=_checkLockout('client_'+key);
+  if(wait>0){
+    errEl.innerText=`🔒 Conta bloqueada. Aguarde ${wait}s para tentar novamente.`;
+    errEl.classList.remove('hidden');
+    // Countdown timer
+    let rem=wait;
+    const t=setInterval(()=>{
+      rem--;
+      if(rem<=0){clearInterval(t);errEl.classList.add('hidden');}
+      else errEl.innerText=`🔒 Conta bloqueada. Aguarde ${rem}s para tentar novamente.`;
+    },1000);
+    return;
+  }
   db.ref('clients/'+key).once('value',s=>{
-    if(!s.exists()||s.val().pass!==pass){errEl.classList.remove('hidden');return;}
+    if(!s.exists()||s.val().pass!==pass){
+      _recordFailedLogin('client_'+key);
+      const left=_attemptsLeft('client_'+key);
+      errEl.innerText=left>0?`❌ E-mail ou senha incorretos. ${left} tentativa(s) restante(s).`:`🔒 Muitas tentativas. Aguarde 1 minuto.`;
+      errEl.classList.remove('hidden');
+      return;
+    }
+    _resetLoginAttempts('client_'+key);
     clientUser={id,nome:s.val().nome,key};
     const remember=document.getElementById('cl-remember')?.checked;
     try{
@@ -2441,11 +3355,7 @@ function doClientLogin(){
     }catch(e){}
     updateClientTopbar();
     if(window._pendingLoja){const l=window._pendingLoja;window._pendingLoja=null;openClientMenu(l);}
-    else{
-      // Após login: vai para lojas. Botão "Minha Conta" aparece no topbar.
-      loadStores();
-      gotoView('view-client','nav-client');
-    }
+    else{loadStores();gotoView('view-client','nav-client');}
   });
 }
 
@@ -2718,6 +3628,455 @@ function buildClientRow(d,k,foneOverride){
   <button class="btn btn-gold btn-xs" onclick="openClientEdit('${k}')">✏️</button>`;
   list.appendChild(row);
 }
+
+// ─── ADMIN CONFIG ────────────────────────────────────────
+function loadAdmConfig(){
+  db.ref('admin-config').once('value',s=>{
+    const d=s.val()||{};
+    const tok=document.getElementById('adm-mp-token');
+    const pub=document.getElementById('adm-mp-pubkey');
+    const wh=document.getElementById('adm-mp-webhook');
+    if(tok)tok.value=d.mpToken||'';
+    if(pub)pub.value=d.mpPubKey||'';
+    if(wh)wh.value=d.mpWebhook||'';
+    const pm=document.getElementById('adm-preco-mes');
+    const pt=document.getElementById('adm-preco-tri');
+    const ps=document.getElementById('adm-preco-sem');
+    const pa=document.getElementById('adm-preco-ano');
+    if(pm)pm.value=d.precoMes||'';
+    if(pt)pt.value=d.precoTri||'';
+    if(ps)ps.value=d.precoSem||'';
+    if(pa)pa.value=d.precoAno||'';
+  });
+}
+function saveAdmMP(){
+  const tok=document.getElementById('adm-mp-token').value.trim();
+  const pub=document.getElementById('adm-mp-pubkey').value.trim();
+  const wh=document.getElementById('adm-mp-webhook').value.trim();
+  if(!tok&&!pub){alert('Preencha pelo menos o Access Token ou a Public Key.');return;}
+  db.ref('admin-config').update({mpToken:tok,mpPubKey:pub,mpWebhook:wh})
+    .then(()=>alert('✅ Credenciais do MercadoPago salvas!'));
+}
+function saveAdmPrecos(){
+  const precoMes=parseFloat(document.getElementById('adm-preco-mes').value)||0;
+  const precoTri=parseFloat(document.getElementById('adm-preco-tri').value)||0;
+  const precoSem=parseFloat(document.getElementById('adm-preco-sem').value)||0;
+  const precoAno=parseFloat(document.getElementById('adm-preco-ano').value)||0;
+  db.ref('admin-config').update({precoMes,precoTri,precoSem,precoAno})
+    .then(()=>alert('✅ Preços salvos!'));
+}
+function saveAdmPass(){
+  const np=document.getElementById('adm-new-pass').value;
+  const np2=document.getElementById('adm-new-pass2').value;
+  if(!np||np.length<4){alert('Senha deve ter pelo menos 4 caracteres!');return;}
+  if(np!==np2){alert('As senhas não coincidem!');return;}
+  db.ref('admin-config').update({masterPass:np})
+    .then(()=>alert('✅ Senha master alterada com sucesso!'));
+}
+// ─── ADMIN: PAGAMENTOS COMPLETO ──────────────────────────
+let _allPagamentos=[];
+let _payFiltro='todos';
+
+function filtrarPagAdmin(status,btn){
+  _payFiltro=status;
+  document.querySelectorAll('.adm-pay-filter').forEach(b=>{
+    b.classList.remove('active');
+    b.style.fontWeight='700';
+  });
+  btn.classList.add('active');
+  renderPagamentosAdmin();
+}
+
+async function loadAdminPagamentos(){
+  const list=document.getElementById('adm-pay-list');
+  if(!list)return;
+  list.innerHTML='<p style="text-align:center;opacity:.4;font-size:12px;font-weight:700;margin:20px 0">🔄 Carregando...</p>';
+  _allPagamentos=[];
+
+  // Buscar todos pagamentos aprovados de todas as lojas
+  const [paySnap,attemptSnap,notifSnap]=await Promise.all([
+    db.ref('payments').once('value'),
+    db.ref('payment-attempts').once('value'),
+    db.ref('admin-notifications').orderByChild('lido').equalTo(false).once('value')
+  ]);
+
+  // Mapa de nomes das lojas (lojaKey → nome real)
+  const storeNamesSnap=await db.ref('stores').once('value');
+  const storeNames={};
+  if(storeNamesSnap.exists()) storeNamesSnap.forEach(s=>{storeNames[s.key]=s.val().name||s.key;});
+
+  // Aprovados
+  if(paySnap.exists()){
+    paySnap.forEach(lojaSnap=>{
+      const lojaKey=lojaSnap.key;
+      lojaSnap.forEach(p=>{
+        const d=p.val();
+        // Ignorar só registros sem absolutamente nenhum dado útil
+        if((d.dias||0)===0&&(d.valor||0)===0&&(!d.paymentId||d.paymentId==='manual')) return;
+        _allPagamentos.push({
+          id:p.key,lojaKey,
+          status:'approved',
+          valor:d.valor||0,
+          dias:d.dias||0,
+          paymentId:d.paymentId||'--',
+          metodo:d.metodo||'--',
+          ts:d.ts||0,
+          dia:d.dia||'--',
+          hora:d.hora||'',
+          lojaNome:storeNames[lojaKey]||d.lojaNome||lojaKey
+        });
+      });
+    });
+  }
+
+  // Tentativas/Erros
+  if(attemptSnap.exists()){
+    attemptSnap.forEach(lojaSnap=>{
+      const lojaKey=lojaSnap.key;
+      lojaSnap.forEach(p=>{
+        const d=p.val();
+        // Ignorar só registros sem absolutamente nenhum dado útil
+        if((d.dias||0)===0&&(d.valor||0)===0&&(!d.paymentId||d.paymentId==='manual')) return;
+        _allPagamentos.push({
+          id:p.key,lojaKey,
+          status:d.status||'rejected',
+          status_detail:d.status_detail||'--',
+          valor:d.valor||0,
+          dias:d.dias||0,
+          paymentId:d.paymentId||null,
+          metodo:d.metodo||'--',
+          ts:d.ts||0,
+          dia:d.dia||'--',
+          hora:d.hora||'',
+          lojaNome:storeNames[lojaKey]||d.lojaNome||lojaKey
+        });
+      });
+    });
+  }
+
+  // Incluir tentativas de invasão ao admin
+  if(notifSnap.exists()){
+    notifSnap.forEach(n=>{
+      const d=n.val();
+      if(d.tipo==='tentativa_admin'){
+        _allPagamentos.push({
+          id:n.key, lojaKey:'ADMIN', lojaNome:'⚠️ Tentativa de acesso Admin',
+          status:'rejected', status_detail:'Bloqueado após 5 senhas erradas — possível invasão',
+          valor:0, dias:0, metodo:'--',
+          ts:d.ts||0, dia:d.dia||'--', hora:d.hora||''
+        });
+      }
+    });
+  }
+
+  // Enriquecer registros com valor=0 mas paymentId válido buscando no MP
+  const semValor=_allPagamentos.filter(p=>
+    (p.valor||0)===0 && p.paymentId && p.paymentId!=='--' && p.paymentId!=='manual' && !p.paymentId.startsWith('manual')
+  );
+  if(semValor.length){
+    await Promise.all(semValor.map(async p=>{
+      try{
+        const r=await fetch('https://api.mercadopago.com/v1/payments/'+p.paymentId,{
+          headers:{'Authorization':'Bearer '+MP_ACCESS_TOKEN}
+        });
+        const mp=await r.json();
+        if(mp.transaction_amount) p.valor=mp.transaction_amount;
+        if(mp.description) p.descMP=mp.description;
+        if(!p.dias&&mp.metadata?.dias) p.dias=mp.metadata.dias;
+        if(!p.lojaNome||p.lojaNome===p.lojaKey){
+          const nm=mp.metadata?.lojaNome||storeNames[p.lojaKey]||p.lojaKey;
+          p.lojaNome=nm;
+        }
+        // Corrigir no Firebase também
+        if(mp.transaction_amount&&(mp.transaction_amount||0)>0){
+          db.ref('payments/'+p.lojaKey+'/'+p.id).update({
+            valor:mp.transaction_amount,
+            lojaNome:p.lojaNome
+          }).catch(()=>{});
+        }
+      }catch(e){console.warn('Enrich payment:',e);}
+    }));
+  }
+
+  // Ordenar mais recente primeiro
+  _allPagamentos.sort((a,b)=>b.ts-a.ts);
+
+  // Calcular totais
+  const aprovados=_allPagamentos.filter(p=>p.status==='approved');
+  const falhas=_allPagamentos.filter(p=>p.status==='rejected'||p.status==='error');
+  const pendentes=_allPagamentos.filter(p=>p.status==='pending'||p.status==='in_process');
+  const totalRecebido=aprovados.reduce((s,p)=>s+parseFloat(p.valor||0),0);
+
+  // Badge na aba
+  const notifCount=notifSnap.exists()?notifSnap.numChildren():0;
+  const tabBtn=document.getElementById('tab-pagamentos');
+  if(tabBtn){
+    const badge=notifCount>0?` <span style="background:var(--red);color:#fff;border-radius:99px;font-size:9px;padding:1px 5px;font-weight:900">${notifCount}</span>`:'';
+    tabBtn.innerHTML='💰 Pagamentos'+badge;
+  }
+
+  // Atualizar stats
+  const trEl=document.getElementById('adm-total-recebido');
+  const taEl=document.getElementById('adm-total-aprovados');
+  const tfEl=document.getElementById('adm-total-falhas');
+  const tpEl=document.getElementById('adm-total-pendentes');
+  if(trEl)trEl.innerText='R$ '+totalRecebido.toFixed(2);
+  if(taEl)taEl.innerText=aprovados.length;
+  if(tfEl)tfEl.innerText=falhas.length;
+  if(tpEl)tpEl.innerText=pendentes.length;
+
+  renderPagamentosAdmin();
+
+  // Marcar notificações como lidas ao abrir aba
+  if(notifSnap.exists()){
+    notifSnap.forEach(n=>{
+      db.ref('admin-notifications/'+n.key).update({lido:true});
+    });
+  }
+}
+
+
+// ─── BUSCAR PAGAMENTOS DIRETAMENTE NO MP ─────────────────
+// Recupera pagamentos reais mesmo que nunca tenham sido gravados no Firebase
+async function buscarPagamentosMP(){
+  const btn=event.target;
+  btn.innerText='⏳ Buscando...';btn.disabled=true;
+  const list=document.getElementById('adm-pay-list');
+  if(list) list.innerHTML='<p style="text-align:center;opacity:.4;font-size:12px;font-weight:700;margin:20px 0">🔎 Consultando Mercado Pago...</p>';
+  try{
+    // Buscar últimos 50 pagamentos na conta MP
+    const resp=await fetch(
+      'https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=50',
+      {headers:{'Authorization':'Bearer '+MP_ACCESS_TOKEN}}
+    );
+    const data=await resp.json();
+    const results=data.results||[];
+
+    // Mapa de lojas pelo external_reference (lojaKey_dias_ts)
+    const storeNamesSnap=await db.ref('stores').once('value');
+    const storeNames={};
+    if(storeNamesSnap.exists()) storeNamesSnap.forEach(s=>{storeNames[s.key]=s.val().name||s.key;});
+
+    // Buscar paymentIds já gravados no Firebase para não duplicar
+    const paySnap=await db.ref('payments').once('value');
+    const jaGravados=new Set();
+    if(paySnap.exists()) paySnap.forEach(l=>l.forEach(p=>{
+      const pid=p.val().paymentId;
+      if(pid) jaGravados.add(String(pid));
+    }));
+
+    _allPagamentos=[];
+    let naoGravados=0;
+
+    for(const p of results){
+      const extRef=p.external_reference||'';
+      const lojaKey=extRef.split('_')[0]||'';
+      const diasRef=parseInt(extRef.split('_')[1])||0;
+      const lojaNome=p.metadata?.lojaNome||storeNames[lojaKey]||lojaKey||'--';
+      const dia=new Date(p.date_created).toLocaleDateString('pt-BR');
+      const hora=new Date(p.date_created).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const ts=new Date(p.date_created).getTime();
+
+      _allPagamentos.push({
+        id:'mp_'+p.id, lojaKey, lojaNome,
+        status:p.status,
+        status_detail:p.status_detail||'',
+        valor:p.transaction_amount||0,
+        dias:diasRef||p.metadata?.dias||0,
+        paymentId:String(p.id),
+        metodo:p.payment_method_id||'--',
+        ts, dia, hora,
+        naoGravado: p.status==='approved' && !jaGravados.has(String(p.id))
+      });
+
+      // Se aprovado e não gravado → ativar automaticamente
+      if(p.status==='approved' && !jaGravados.has(String(p.id)) && lojaKey){
+        naoGravados++;
+        window._licPayLojaNome=lojaNome;
+        await ativarLicencaAposPagamento(
+          lojaKey,
+          diasRef||p.metadata?.dias||30,
+          String(p.id),
+          p.transaction_amount||0
+        );
+      }
+    }
+
+    _allPagamentos.sort((a,b)=>b.ts-a.ts);
+
+    // Atualizar stats
+    const aprovados=_allPagamentos.filter(p=>p.status==='approved');
+    const falhas=_allPagamentos.filter(p=>p.status==='rejected'||p.status==='error');
+    const pendentes=_allPagamentos.filter(p=>p.status==='pending'||p.status==='in_process');
+    const totalRecebido=aprovados.reduce((s,p)=>s+parseFloat(p.valor||0),0);
+    const trEl=document.getElementById('adm-total-recebido');
+    const taEl=document.getElementById('adm-total-aprovados');
+    const tfEl=document.getElementById('adm-total-falhas');
+    const tpEl=document.getElementById('adm-total-pendentes');
+    if(trEl)trEl.innerText='R$ '+totalRecebido.toFixed(2);
+    if(taEl)taEl.innerText=aprovados.length;
+    if(tfEl)tfEl.innerText=falhas.length;
+    if(tpEl)tpEl.innerText=pendentes.length;
+
+    renderPagamentosAdmin();
+
+    if(naoGravados>0){
+      alert('✅ '+naoGravados+' pagamento(s) aprovado(s) encontrado(s) e licença(s) ativada(s)!');
+    } else if(!results.length){
+      alert('Nenhum pagamento encontrado na conta MP.');
+    }
+
+  }catch(err){
+    console.error('buscarPagamentosMP:',err);
+    if(list) list.innerHTML='<p style="color:red;text-align:center;font-size:12px;font-weight:700;margin:20px 0">Erro ao consultar MP: '+err.message+'</p>';
+  } finally {
+    btn.innerText='🔎 Buscar no MP';btn.disabled=false;
+  }
+}
+
+
+// ─── LIMPAR REGISTROS INVÁLIDOS DO FIREBASE ──────────────
+async function limparRegistrosInvalidos(){
+  if(!confirm('Isso vai remover todos os registros com R$ 0,00 e 0 dias (gerados por bug). Confirmar?'))return;
+  let removidos=0;
+  // Limpar payments com dias=0 e valor=0
+  const paySnap=await db.ref('payments').once('value');
+  if(paySnap.exists()){
+    const promises=[];
+    paySnap.forEach(lojaSnap=>{
+      lojaSnap.forEach(p=>{
+        const d=p.val();
+        // Inválido = sem paymentId real + dias=0 + valor=0
+        const semId=!d.paymentId||d.paymentId==='manual'||String(d.paymentId).startsWith('manual');
+        if((d.dias||0)===0&&(d.valor||0)===0&&semId){
+          promises.push(db.ref('payments/'+lojaSnap.key+'/'+p.key).remove());
+          removidos++;
+        }
+      });
+    });
+    await Promise.all(promises);
+  }
+  // Limpar payment-attempts com dias=0 e valor=0
+  const attSnap=await db.ref('payment-attempts').once('value');
+  if(attSnap.exists()){
+    const promises=[];
+    attSnap.forEach(lojaSnap=>{
+      lojaSnap.forEach(p=>{
+        const d=p.val();
+        const semId=!d.paymentId||d.paymentId==='manual'||String(d.paymentId||'').startsWith('manual');
+        if((d.dias||0)===0&&(d.valor||0)===0&&semId){
+          promises.push(db.ref('payment-attempts/'+lojaSnap.key+'/'+p.key).remove());
+          removidos++;
+        }
+      });
+    });
+    await Promise.all(promises);
+  }
+  alert('🧹 '+removidos+' registro(s) inválido(s) removido(s)!');
+  loadAdminPagamentos();
+}
+
+function renderPagamentosAdmin(){
+  const list=document.getElementById('adm-pay-list');
+  if(!list)return;
+
+  let itens=_allPagamentos;
+  if(_payFiltro==='approved') itens=itens.filter(p=>p.status==='approved');
+  else if(_payFiltro==='pending') itens=itens.filter(p=>p.status==='pending'||p.status==='in_process');
+  else if(_payFiltro==='rejected') itens=itens.filter(p=>p.status==='rejected'||p.status==='error');
+
+  if(!itens.length){
+    list.innerHTML='<p style="text-align:center;opacity:.4;font-size:12px;font-weight:700;margin:20px 0">Nenhum registro nesta categoria</p>';
+    return;
+  }
+
+  list.innerHTML='';
+  itens.forEach(p=>{
+    const isAprov=p.status==='approved';
+    const isPend=p.status==='pending'||p.status==='in_process';
+    const isFalha=p.status==='rejected'||p.status==='error';
+
+    const corBorda=isAprov?'#16a34a':isPend?'#ca8a04':'#e62222';
+    const corBg=isAprov?'#f0fdf4':isPend?'#fefce8':'#fff1f2';
+    const statusLabel=isAprov?'✅ Aprovado':isPend?'⏳ Pendente':'❌ '+( p.status_detail||'Falha');
+    const statusCor=isAprov?'#16a34a':isPend?'#ca8a04':'#e62222';
+
+    const metodoBadge=p.metodo&&p.metodo!=='--'?`<span style="font-size:9px;background:#e2e8f0;padding:2px 6px;border-radius:6px;font-weight:700;margin-left:4px">${p.metodo}</span>`:'';
+    const payIdStr=p.paymentId&&p.paymentId!=='--'?`<div style="font-size:9px;color:#aaa;font-weight:700;margin-top:1px">ID: ${p.paymentId}</div>`:'';
+    const ativarBtn=isPend?`<button onclick="ativarLicencaManual('${p.lojaKey}',${p.dias},'${p.paymentId||p.id}')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:900;cursor:pointer;margin-top:6px;width:100%">✅ Ativar manualmente</button>`:'';
+
+    const div=document.createElement('div');
+    div.style.cssText=`background:${corBg};border:2px solid ${corBorda};border-radius:14px;padding:13px 14px`;
+    div.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div>
+          <div style="font-weight:900;font-size:13px">${p.lojaNome||p.lojaKey}${metodoBadge}</div>
+          <div style="font-size:10px;color:#888;font-weight:700">${p.dia||''} ${p.hora||''}</div>
+          ${p.descMP?`<div style="font-size:9px;color:#aaa;font-weight:700">${p.descMP}</div>`:''}
+          ${payIdStr}
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:900;font-size:16px;color:${corBorda}">R$ ${parseFloat(p.valor||0).toFixed(2)}</div>
+          <div style="font-size:10px;font-weight:700;color:#888">${p.dias} dias</div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:900;color:${statusCor}">${statusLabel}</div>
+      ${p.naoGravado?'<div style="font-size:10px;background:#fef9c3;color:#92400e;border-radius:6px;padding:3px 8px;font-weight:900;margin-top:4px">⚠️ Estava fora do Firebase — licença ativada agora</div>':''}
+      ${ativarBtn}
+      ${isPend||p.lojaKey==='ADMIN'?'':`<button onclick="reprocessarPagamentoAdmin('${p.lojaKey}','${p.paymentId}',${p.dias},${p.valor})" style="background:none;border:1.5px solid #1d4ed8;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:900;color:#1d4ed8;cursor:pointer;margin-top:4px;width:100%">🔍 Consultar MP</button>`}`;
+    list.appendChild(div);
+  });
+}
+
+
+function reprocessarPagamentoAdmin(lojaKey, paymentId, dias, valor){
+  if(!paymentId||paymentId==='--'||paymentId==='manual'){
+    alert('ID de pagamento não disponível para consulta.');return;
+  }
+  const btn=event.target;btn.innerText='⏳...';btn.disabled=true;
+  fetch('https://api.mercadopago.com/v1/payments/'+paymentId,{
+    headers:{'Authorization':'Bearer '+MP_ACCESS_TOKEN}
+  }).then(r=>r.json()).then(async p=>{
+    if(p.status==='approved'){
+      window._licPayLojaNome=lojaKey;
+      await ativarLicencaAposPagamento(lojaKey, dias, paymentId, valor||p.transaction_amount||0);
+      alert('✅ Licença ativada com sucesso!');
+      loadAdminPagamentos();
+    } else {
+      alert('Status no MP: '+p.status+(p.status_detail?' ('+p.status_detail+')':'')+'\nPagamento ainda não aprovado.');
+      btn.innerText='🔍 Consultar MP';btn.disabled=false;
+    }
+  }).catch(e=>{
+    alert('Erro ao consultar MP: '+e.message);
+    btn.innerText='🔍 Consultar MP';btn.disabled=false;
+  });
+}
+
+function ativarLicencaManual(lojaKey, dias, ref){
+  if(!confirm('Ativar '+dias+' dias para esta loja manualmente?'))return;
+  ativarLicencaAposPagamento(lojaKey, dias, 'manual_'+ref, 0)
+    .then(()=>loadAdminPagamentos());
+}
+
+// ─── ADMIN: NOTIFICAÇÕES DE PAGAMENTO ────────────────────
+function loadAdminPayNotif(){
+  // Contar notificações não lidas e colocar badge na aba
+  db.ref('admin-notifications').orderByChild('lido').equalTo(false).once('value',snap=>{
+    const cnt=snap.exists()?snap.numChildren():0;
+    const tabBtn=document.getElementById('tab-pagamentos');
+    if(tabBtn){
+      const badge=cnt>0?` <span style="background:var(--red);color:#fff;border-radius:99px;font-size:9px;padding:1px 5px;font-weight:900">${cnt}</span>`:'';
+      tabBtn.innerHTML='💰 Pagamentos'+badge;
+    }
+  });
+}
+function marcarNotifLida(btn){
+  const key=btn.dataset.nkey;
+  db.ref('admin-notifications/'+key).update({lido:true}).then(()=>{
+    btn.closest('div')?.remove();
+  });
+}
+
 function loadAdminClients(){
   db.ref('clients').on('value',snap=>{
     const list=document.getElementById('adm-clients-list');list.innerHTML='';
@@ -2833,7 +4192,7 @@ setTimeout(checkDirectLink,500);
     <label class="lbl">Foto do Produto</label>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button class="btn btn-black btn-sm" style="flex:1" onclick="document.getElementById('ep-img-file').click()">📷 Câmera/Galeria</button>
-      <input type="file" id="ep-img-file" accept="image/*" capture="environment" class="hidden" onchange="previewEditProdImg(this)">
+      <input type="file" id="ep-img-file" accept="image/*" class="hidden" onchange="previewEditProdImg(this)">
     </div>
     <input class="inp" id="ep-img-url" placeholder="Ou cole URL da imagem..." style="margin-bottom:8px">
     <label class="lbl">Nome *</label>
