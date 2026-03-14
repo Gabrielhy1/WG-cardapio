@@ -14,6 +14,13 @@
 <style>
 .plano-sel{transform:scale(1.01)}
 #lic-mp-brick .mercadopago-button{border-radius:14px!important;font-weight:900!important}
+/* ── PLAN LOCKS ── */
+.feature-locked{position:relative;pointer-events:none;user-select:none}
+.feature-locked::after{content:attr(data-lock-msg);position:absolute;inset:0;background:rgba(10,10,10,.82);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;display:flex;align-items:center;justify-content:center;border-radius:inherit;z-index:10;text-align:center;padding:4px 8px}
+.plan-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.8px;border:2px solid}
+.plan-bronze{background:#fdf2e0;border-color:#cd7f32;color:#7c4a00}
+.plan-ouro{background:#fefce8;border-color:#ca8a04;color:#713f12}
+.plan-black{background:#1e1e1e;border-color:#444;color:#f5c518}
 </style>
 <style>
 :root{
@@ -290,7 +297,12 @@ textarea.inp{resize:vertical;min-height:65px}
           <input class="inp" id="co-troco" type="number" placeholder="Ex: 50.00" style="margin-bottom:0">
         </div>
       </div>
-      <button class="btn btn-green" style="margin-top:14px" onclick="enviarWA()">✅ Confirmar Pedido</button>
+      <button class="btn btn-green" style="margin-top:14px" id="btn-confirmar-pedido" onclick="enviarWA()">✅ Confirmar Pedido</button>
+      <div id="loja-fechada-msg" class="hidden" style="background:#fee2e2;border:2px solid var(--red);border-radius:12px;padding:12px;text-align:center;margin-top:10px">
+        <div style="font-size:20px;margin-bottom:4px">🔒</div>
+        <div style="font-weight:900;font-size:14px;color:var(--red)">Loja Fechada no Momento</div>
+        <div id="loja-fechada-horario" style="font-size:11px;font-weight:700;color:#555;margin-top:4px"></div>
+      </div>
     </div>
     <div id="co-val-err" class="hidden" style="background:#fee2e2;border:2px solid var(--red);border-radius:12px;padding:12px;text-align:center;margin-top:10px">
       <div style="font-weight:900;font-size:13px;color:var(--red)">⚠️ Preencha os campos obrigatórios!</div>
@@ -540,7 +552,10 @@ textarea.inp{resize:vertical;min-height:65px}
 <section id="view-merchant" class="view hidden fade-in" style="padding:0 16px">
   <div class="topbar">
     <div><div class="tt" id="m-title">Minha Loja</div><div class="ts">Painel do Lojista</div></div>
-    <button onclick="doMLogout()" style="background:none;border:none;color:#888;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase">Sair</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="plano-badge-topbar"></div>
+      <button onclick="doMLogout()" style="background:none;border:none;color:#888;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase">Sair</button>
+    </div>
   </div>
   <div style="height:14px"></div>
   <div id="lic-banner"></div>
@@ -550,6 +565,7 @@ textarea.inp{resize:vertical;min-height:65px}
     <button class="tab-item" onclick="mTab('mesas',this)">🍽️ Mesas</button>
     <button class="tab-item" onclick="mTab('caixa',this)">💰 Caixa</button>
     <button class="tab-item" onclick="mTab('avaliacoes',this)">⭐ Notas</button>
+    <button class="tab-item" id="tab-recuperacao" onclick="mTab('recuperacao',this)" style="display:none">📲 Clientes</button>
     <button class="tab-item" onclick="mTab('config',this)">⚙️ Config</button>
   </div>
 
@@ -559,6 +575,14 @@ textarea.inp{resize:vertical;min-height:65px}
       <div class="stat-box"><div class="stat-val" id="m-open-count" style="color:var(--red)">0</div><div class="stat-lbl">Abertos</div></div>
       <div class="stat-box"><div class="stat-val" id="m-done-count" style="color:var(--green)">0</div><div class="stat-lbl">Concluídos</div></div>
     </div>
+    <!-- Filtro de data dos pedidos -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;background:#fff;border:var(--border);border-radius:12px;padding:10px 12px;box-shadow:2px 2px 0 var(--black)">
+      <span style="font-size:11px;font-weight:900;text-transform:uppercase;opacity:.6;flex-shrink:0">📅 Data:</span>
+      <span id="delivery-date-label" style="font-size:12px;font-weight:900;flex:1;color:var(--blue)">Hoje</span>
+      <button onclick="openDeliveryDatePicker()" style="background:var(--black);color:var(--gold);border:none;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer" title="Filtrar por data">📅</button>
+      <button id="btn-clear-date-filter" onclick="clearDeliveryDateFilter()" class="hidden" style="background:#fee2e2;color:var(--red);border:1.5px solid var(--red);border-radius:8px;padding:5px 8px;font-size:10px;font-weight:900;cursor:pointer">✕ Limpar</button>
+    </div>
+    <input type="date" id="delivery-date-input" class="hidden" onchange="applyDeliveryDateFilter(this.value)" style="position:absolute;opacity:0;pointer-events:none">
     <div class="stripe">🛵 Pedidos Ativos</div><div id="list-delivery-active"></div>
     <div class="stripe" style="margin-top:12px">✅ Histórico</div><div id="list-delivery-done"></div>
   </div>
@@ -619,8 +643,36 @@ textarea.inp{resize:vertical;min-height:65px}
     </div>
     <div id="mc-rev-list"></div>
   </div>
+  <!-- RECUPERAÇÃO DE CLIENTES (BLACK) -->
+  <div id="mc-recuperacao" class="hidden">
+    <div id="mc-recuperacao-inner">
+      <!-- Conteúdo renderizado por loadRecuperacaoClientes() -->
+    </div>
+  </div>
+
   <!-- CONFIG -->
   <div id="mc-config" class="hidden">
+    <div class="card">
+      <div class="stripe">🕐 Horários de Funcionamento</div>
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px;line-height:1.6">Fora do horário, o botão de finalizar pedido fica desabilitado no cardápio.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#f1f5f9;border-radius:12px;padding:12px;margin-bottom:12px">
+        <div><div style="font-weight:900;font-size:12px">Trava de Horário</div><div style="font-size:10px;opacity:.6;margin-top:2px">Controlar horário de pedidos</div></div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="cf-horario-ativo" style="width:20px;height:20px;cursor:pointer;accent-color:var(--green)" onchange="document.getElementById('cf-horario-ativo-lbl').innerText=this.checked?'Sim':'Não';document.getElementById('cf-horarios-dias').style.display=this.checked?'block':'none'">
+          <span id="cf-horario-ativo-lbl" style="font-size:11px;font-weight:900;color:var(--green)">Não</span>
+        </label>
+      </div>
+      <div id="cf-horarios-dias" style="display:none">
+        <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-weight:900;font-size:12px">Segunda</div><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cf-dia-segunda" style="width:16px;height:16px;accent-color:var(--green)" onchange="document.getElementById('cf-hora-segunda').style.display=this.checked?'flex':'none'"><span style="font-size:11px;font-weight:700">Aberto</span></label></div><div id="cf-hora-segunda" style="display:none;gap:8px;align-items:center"><input type="time" id="cf-ab-segunda" value="08:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"><span style="font-size:11px;font-weight:700;opacity:.5">até</span><input type="time" id="cf-fe-segunda" value="22:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"></div></div>
+        <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-weight:900;font-size:12px">Terça</div><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cf-dia-terca" style="width:16px;height:16px;accent-color:var(--green)" onchange="document.getElementById('cf-hora-terca').style.display=this.checked?'flex':'none'"><span style="font-size:11px;font-weight:700">Aberto</span></label></div><div id="cf-hora-terca" style="display:none;gap:8px;align-items:center"><input type="time" id="cf-ab-terca" value="08:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"><span style="font-size:11px;font-weight:700;opacity:.5">até</span><input type="time" id="cf-fe-terca" value="22:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"></div></div>
+        <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-weight:900;font-size:12px">Quarta</div><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cf-dia-quarta" style="width:16px;height:16px;accent-color:var(--green)" onchange="document.getElementById('cf-hora-quarta').style.display=this.checked?'flex':'none'"><span style="font-size:11px;font-weight:700">Aberto</span></label></div><div id="cf-hora-quarta" style="display:none;gap:8px;align-items:center"><input type="time" id="cf-ab-quarta" value="08:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"><span style="font-size:11px;font-weight:700;opacity:.5">até</span><input type="time" id="cf-fe-quarta" value="22:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"></div></div>
+        <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-weight:900;font-size:12px">Quinta</div><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cf-dia-quinta" style="width:16px;height:16px;accent-color:var(--green)" onchange="document.getElementById('cf-hora-quinta').style.display=this.checked?'flex':'none'"><span style="font-size:11px;font-weight:700">Aberto</span></label></div><div id="cf-hora-quinta" style="display:none;gap:8px;align-items:center"><input type="time" id="cf-ab-quinta" value="08:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"><span style="font-size:11px;font-weight:700;opacity:.5">até</span><input type="time" id="cf-fe-quinta" value="22:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"></div></div>
+        <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-weight:900;font-size:12px">Sexta</div><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cf-dia-sexta" style="width:16px;height:16px;accent-color:var(--green)" onchange="document.getElementById('cf-hora-sexta').style.display=this.checked?'flex':'none'"><span style="font-size:11px;font-weight:700">Aberto</span></label></div><div id="cf-hora-sexta" style="display:none;gap:8px;align-items:center"><input type="time" id="cf-ab-sexta" value="08:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"><span style="font-size:11px;font-weight:700;opacity:.5">até</span><input type="time" id="cf-fe-sexta" value="22:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"></div></div>
+        <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-weight:900;font-size:12px">Sábado</div><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cf-dia-sabado" style="width:16px;height:16px;accent-color:var(--green)" onchange="document.getElementById('cf-hora-sabado').style.display=this.checked?'flex':'none'"><span style="font-size:11px;font-weight:700">Aberto</span></label></div><div id="cf-hora-sabado" style="display:none;gap:8px;align-items:center"><input type="time" id="cf-ab-sabado" value="09:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"><span style="font-size:11px;font-weight:700;opacity:.5">até</span><input type="time" id="cf-fe-sabado" value="20:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"></div></div>
+        <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-weight:900;font-size:12px">Domingo</div><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cf-dia-domingo" style="width:16px;height:16px;accent-color:var(--green)" onchange="document.getElementById('cf-hora-domingo').style.display=this.checked?'flex':'none'"><span style="font-size:11px;font-weight:700">Aberto</span></label></div><div id="cf-hora-domingo" style="display:none;gap:8px;align-items:center"><input type="time" id="cf-ab-domingo" value="10:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"><span style="font-size:11px;font-weight:700;opacity:.5">até</span><input type="time" id="cf-fe-domingo" value="18:00" style="flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-weight:700;font-size:12px"></div></div>
+      </div>
+      <button class="btn btn-black" onclick="saveHorarios()">💾 Salvar Horários</button>
+    </div>
     <div class="card"><div class="stripe">🔐 Senha do Caixa</div>
       <input class="inp" id="cf-pass-cx" type="password" placeholder="Nova senha do caixa">
       <button class="btn btn-black" onclick="saveSenhaCaixa()">Salvar Senha</button>
@@ -723,6 +775,23 @@ textarea.inp{resize:vertical;min-height:65px}
       <button class="btn btn-black" onclick="addProduct()">+ Adicionar Item</button>
       <hr class="divider">
       <div id="cf-product-list"></div>
+    </div>
+    <!-- WRAPPER PIX INTEGRADO (Ouro/Black) -->
+    <div id="mc-pix-config" class="card" style="border-radius:var(--rad)">
+      <div class="stripe">📱 Pix Integrado (Ouro/Black)</div>
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px;line-height:1.6">Configure seu Access Token do Mercado Pago para receber Pix automático nos pedidos.</div>
+      <label class="lbl">Access Token MP (sua loja)</label>
+      <input class="inp" id="cf-mp-token-loja" type="password" placeholder="APP_USR-...">
+      <label class="lbl">Chave Pix (e-mail, CPF ou aleatória)</label>
+      <input class="inp" id="cf-mp-pix-key-loja" placeholder="Ex: meuemail@email.com">
+      <button class="btn btn-black" onclick="saveMPConfigLoja()">💾 Salvar configuração Pix</button>
+    </div>
+    <!-- WRAPPER GESTÃO DE ESTOQUE (Ouro/Black) -->
+    <div id="mc-estoque-wrap" class="card" style="border-radius:var(--rad)">
+      <div class="stripe">📦 Gestão de Estoque (Ouro/Black)</div>
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px;line-height:1.6">Controle de estoque avançado: alertas, pausas automáticas e estorno com reposição.</div>
+      <div id="mc-estoque-list"></div>
+      <button class="btn btn-black" onclick="loadEstoqueDetalhado()">🔄 Atualizar Estoque</button>
     </div>
   </div>
 </section>
@@ -829,17 +898,43 @@ textarea.inp{resize:vertical;min-height:65px}
       <button class="btn btn-gold" onclick="saveAdmMP()">💾 Salvar credenciais MP</button>
     </div>
     <div class="card" style="margin-top:14px">
-      <div class="stripe">💰 Tabela de Preços</div>
-      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px">Defina quanto você cobra das lojas por período de licença.</div>
-      <label class="lbl">Mensalidade (R$)</label>
-      <input class="inp" id="adm-preco-mes" type="number" step="0.01" placeholder="49.90">
-      <label class="lbl">Trimestral (R$)</label>
-      <input class="inp" id="adm-preco-tri" type="number" step="0.01" placeholder="129.90">
-      <label class="lbl">Semestral (R$)</label>
-      <input class="inp" id="adm-preco-sem" type="number" step="0.01" placeholder="239.90">
-      <label class="lbl">Anual (R$)</label>
-      <input class="inp" id="adm-preco-ano" type="number" step="0.01" placeholder="449.90">
-      <button class="btn btn-gold" onclick="saveAdmPrecos()">💾 Salvar preços</button>
+      <div class="stripe">💰 Tabela de Preços por Plano</div>
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:14px;line-height:1.6">Defina o preço de cada plano por período. Deixe em branco para usar o padrão.</div>
+
+      <!-- BRONZE -->
+      <div style="background:#fdf2e0;border:2px solid #cd7f32;border-radius:12px;padding:12px;margin-bottom:12px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#7c4a00;letter-spacing:1px;margin-bottom:10px">🥉 Bronze</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label class="lbl">1 Mês</label><input class="inp" id="adm-bronze-mes" type="number" step="0.01" placeholder="49.90"></div>
+          <div><label class="lbl">3 Meses</label><input class="inp" id="adm-bronze-tri" type="number" step="0.01" placeholder="129.90"></div>
+          <div><label class="lbl">6 Meses</label><input class="inp" id="adm-bronze-sem" type="number" step="0.01" placeholder="239.90"></div>
+          <div><label class="lbl">12 Meses</label><input class="inp" id="adm-bronze-ano" type="number" step="0.01" placeholder="449.90"></div>
+        </div>
+      </div>
+
+      <!-- OURO -->
+      <div style="background:#fefce8;border:2px solid #ca8a04;border-radius:12px;padding:12px;margin-bottom:12px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#713f12;letter-spacing:1px;margin-bottom:10px">🥇 Ouro</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label class="lbl">1 Mês</label><input class="inp" id="adm-ouro-mes" type="number" step="0.01" placeholder="79.90"></div>
+          <div><label class="lbl">3 Meses</label><input class="inp" id="adm-ouro-tri" type="number" step="0.01" placeholder="209.90"></div>
+          <div><label class="lbl">6 Meses</label><input class="inp" id="adm-ouro-sem" type="number" step="0.01" placeholder="389.90"></div>
+          <div><label class="lbl">12 Meses</label><input class="inp" id="adm-ouro-ano" type="number" step="0.01" placeholder="729.90"></div>
+        </div>
+      </div>
+
+      <!-- BLACK -->
+      <div style="background:#1e1e1e;border:2px solid #444;border-radius:12px;padding:12px;margin-bottom:12px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);letter-spacing:1px;margin-bottom:10px">⬛ Black</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label class="lbl" style="color:#aaa">1 Mês</label><input class="inp inp-dark" id="adm-black-mes" type="number" step="0.01" placeholder="119.90"></div>
+          <div><label class="lbl" style="color:#aaa">3 Meses</label><input class="inp inp-dark" id="adm-black-tri" type="number" step="0.01" placeholder="309.90"></div>
+          <div><label class="lbl" style="color:#aaa">6 Meses</label><input class="inp inp-dark" id="adm-black-sem" type="number" step="0.01" placeholder="579.90"></div>
+          <div><label class="lbl" style="color:#aaa">12 Meses</label><input class="inp inp-dark" id="adm-black-ano" type="number" step="0.01" placeholder="1099.90"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="saveAdmPrecos()">💾 Salvar todos os preços</button>
     </div>
     <div class="card" style="margin-top:14px">
       <div class="stripe">🔑 Alterar senha Master</div>
@@ -950,16 +1045,143 @@ const fbCfg={apiKey:"AIzaSyBE6QdhuwM6txy_SR6Akk9nJB53kwc_rKI",databaseURL:"https
 firebase.initializeApp(fbCfg);
 const db=firebase.database();
 
+// ══════════════════════════════════════════════════════════
+// ─── SISTEMA DE PLANOS E PERMISSÕES ──────────────────────
+// ══════════════════════════════════════════════════════════
+
+// Plano atual do lojista logado (atualizado ao fazer login)
+let _planoAtivo = 'bronze'; // 'bronze' | 'ouro' | 'black'
+
+const PLANO_FEATURES = {
+  pix_integrado:        ['black'],
+  badge_pix:            ['black'],
+  gestao_estoque:       ['ouro','black'],
+  recuperacao_clientes: ['black']
+};
+
+/**
+ * Verifica se o plano atual tem acesso a uma feature.
+ * @param {string} feature - chave em PLANO_FEATURES
+ */
+function temPermissao(feature){
+  const lista = PLANO_FEATURES[feature] || [];
+  return lista.includes(_planoAtivo);
+}
+
+/**
+ * Aplica bloqueio visual em um elemento se o plano não tem a feature.
+ * Adiciona classe feature-locked e um tooltip.
+ * @param {string} elId - id do elemento
+ * @param {string} feature - chave em PLANO_FEATURES
+ * @param {string} [msg] - mensagem opcional de lock
+ */
+function aplicarLockPlano(elId, feature, msg){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  if(temPermissao(feature)){
+    el.classList.remove('feature-locked');
+    el.removeAttribute('data-lock-msg');
+  } else {
+    const planoNecessario = PLANO_FEATURES[feature]?.[0] || 'Ouro';
+    el.classList.add('feature-locked');
+    el.setAttribute('data-lock-msg', msg || ('🔒 Plano ' + planoNecessario.toUpperCase()));
+  }
+}
+
+/**
+ * Carrega o plano_ativo da loja logada e aplica todas as restrições de UI.
+ * Chamado ao fazer login e ao restaurar sessão.
+ */
+function carregarPlanoEAplicarPermissoes(lojaKey){
+  db.ref('stores/'+lojaKey+'/plano_ativo').once('value', snap => {
+    _planoAtivo = snap.val() || 'bronze';
+    aplicarTodasRestricoes();
+    renderPlanoBadgeTopbar();
+  });
+  // Listener em tempo real — se admin mudar o plano, UI atualiza sem reload
+  db.ref('stores/'+lojaKey+'/plano_ativo').on('value', snap => {
+    const novoPlano = snap.val() || 'bronze';
+    if(novoPlano !== _planoAtivo){
+      _planoAtivo = novoPlano;
+      aplicarTodasRestricoes();
+      renderPlanoBadgeTopbar();
+    }
+  });
+}
+
+function aplicarTodasRestricoes(){
+  // Pix integrado — botão Pix no checkout e configurações MP da loja
+  aplicarLockPlano('mc-pix-config',   'pix_integrado', '🔒 Plano OURO ou BLACK');
+  aplicarLockPlano('mc-estoque-wrap', 'gestao_estoque','🔒 Plano OURO ou BLACK');
+  aplicarLockPlano('mc-recuperacao',  'recuperacao_clientes','🔒 Plano BLACK');
+  // Tab de Recuperação de Clientes na navbar do lojista
+  const tabRecup = document.getElementById('tab-recuperacao');
+  if(tabRecup) tabRecup.style.display = temPermissao('recuperacao_clientes') ? '' : 'none';
+}
+
+function renderPlanoBadgeTopbar(){
+  const badge = document.getElementById('plano-badge-topbar');
+  if(!badge) return;
+  const labels = {bronze:'🥉 Bronze', ouro:'🥇 Ouro', black:'⬛ Black'};
+  const classes = {bronze:'plan-bronze', ouro:'plan-ouro', black:'plan-black'};
+  badge.innerHTML = `<span class="plan-badge ${classes[_planoAtivo]||'plan-bronze'}">${labels[_planoAtivo]||'Bronze'}</span>`;
+}
+
+// ── Verificação automática de vencimento ─────────────────
+// Chamada ao login e ao restaurar sessão.
+// Se licenseExpiry < hoje → seta ativo:false no Firebase e bloqueia UI.
+async function verificarVencimentoAutomatico(lojaKey, storeDataLocal){
+  const d = storeDataLocal || (await db.ref('stores/'+lojaKey).once('value')).val();
+  if(!d) return;
+  const agora = Date.now();
+  if(d.licenseExpiry && d.licenseExpiry < agora && d.ativo !== false){
+    // Expirou — desativar automaticamente
+    await db.ref('stores/'+lojaKey).update({ ativo: false });
+    showBlocked(d.name || lojaKey);
+    return false; // acesso bloqueado
+  }
+  return true; // ok
+}
+
+// ── Webhook-like: ao confirmar pagamento MP, atualiza plano_ativo e data ─
+// Esta função é chamada internamente em ativarLicencaAposPagamento
+// O campo 'plano_ativo' vem de window._planoSelecionadoPagamento (definido no modal)
+async function atualizarPlanoAposPagamento(lojaKey, dias, planoSlug){
+  const agora = Date.now();
+  const snap = await db.ref('stores/'+lojaKey+'/licenseExpiry').once('value');
+  const expAtual = snap.val() || 0;
+  // Soma a partir de hoje (nunca empilha em cima de licença já ativa neste fluxo)
+  const novoExpiry = agora + (dias * MS_DAY);
+  const updates = {
+    licenseExpiry: novoExpiry,
+    plano_ativo: planoSlug || 'bronze',
+    ativo: true,
+    vencimento_licenca: new Date(novoExpiry).toLocaleDateString('pt-BR'),
+    data_ultimo_pagamento: new Date(agora).toLocaleDateString('pt-BR')
+  };
+  await db.ref('stores/'+lojaKey).update(updates);
+  // Atualizar plano em memória se for a loja logada
+  if(curLoja === lojaKey){
+    _planoAtivo = planoSlug || 'bronze';
+    aplicarTodasRestricoes();
+    renderPlanoBadgeTopbar();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+
 // ─── NOTIFICATION SOUND ─────────────────────────────────
 let _lastOrderCount={delivery:0,mesa:0};
 let _notifEnabled=false;
 let _audioCtx=null;
-// Habilita áudio no primeiro clique do usuário
+let _alarmInterval=null;      // toca continuamente até aceitar
+let _pendingAlarmOrders=new Set(); // ids dos pedidos aguardando aceite
+
 document.addEventListener('click',()=>{
   _notifEnabled=true;
-  // Pre-cria o contexto para evitar bloqueio no futuro
   try{if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}
 },{ once:true });
+
 function playNotif(){
   try{
     const ctx=_audioCtx||(new(window.AudioContext||window.webkitAudioContext)());
@@ -972,7 +1194,6 @@ function playNotif(){
     gain.gain.setValueAtTime(0.4,ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);
     osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.6);
-    // Segundo bip após 0.7s
     setTimeout(()=>{
       try{
         const o2=ctx.createOscillator();const g2=ctx.createGain();
@@ -985,14 +1206,48 @@ function playNotif(){
     },700);
   }catch(e){console.warn('Notif audio error:',e);}
 }
+
+// Inicia o alarme contínuo (repete a cada 4s até não ter pedido novo pendente)
+function startAlarmeContinuo(){
+  if(_alarmInterval) return; // já tocando
+  playNotif();
+  _alarmInterval=setInterval(()=>{
+    if(_pendingAlarmOrders.size===0){
+      stopAlarmeContinuo();
+      return;
+    }
+    playNotif();
+  },4000);
+}
+function stopAlarmeContinuo(){
+  if(_alarmInterval){clearInterval(_alarmInterval);_alarmInterval=null;}
+}
+// Chamado quando lojista aceita/recusa um pedido — remove do set de alarme
+function ackPedidoAlarme(id){
+  _pendingAlarmOrders.delete(id);
+  if(_pendingAlarmOrders.size===0) stopAlarmeContinuo();
+}
+
 function watchNotifications(lojaId){
-  // Usa timestamp do último pedido para detectar novos pedidos com precisão
-  let _lastDeliveryTs=0, _lastMesaTs=0, _init={d:false,m:false};
+  let _lastDeliveryTs=0, _init={d:false,m:false};
   db.ref('orders/'+lojaId).orderByChild('ts').on('value',snap=>{
     let maxTs=0;
-    if(snap) snap.forEach(o=>{const t=o.val().ts||0;if(t>maxTs)maxTs=t;});
+    if(snap) snap.forEach(o=>{
+      const v=o.val();
+      const t=v.ts||0;
+      if(t>maxTs)maxTs=t;
+      // Pedido novo (status 'aberto') → adiciona ao alarme
+      if(v.status==='aberto' && t>_lastDeliveryTs && _init.d){
+        _pendingAlarmOrders.add(o.key);
+      }
+    });
     if(!_init.d){_lastDeliveryTs=maxTs;_init.d=true;}
-    else if(maxTs>_lastDeliveryTs){playNotif();_lastDeliveryTs=maxTs;}
+    else if(maxTs>_lastDeliveryTs){
+      _lastDeliveryTs=maxTs;
+      if(_pendingAlarmOrders.size>0) startAlarmeContinuo();
+    }
+    // Verifica se ainda tem pedidos em 'aberto' para manter alarme
+    if(_init.d && _pendingAlarmOrders.size>0) startAlarmeContinuo();
   });
   db.ref('mesa-orders/'+lojaId).on('value',snap=>{
     const cnt=snap?snap.numChildren():0;
@@ -1303,7 +1558,7 @@ function closeOrderSuccess(){
 }
 // ─── LOJISTA: TABS ──────────────────────────────────────
 function mTab(id,btn){
-  ['delivery','cozinha','mesas','caixa','avaliacoes','config'].forEach(t=>{
+  ['delivery','cozinha','mesas','caixa','avaliacoes','config','recuperacao'].forEach(t=>{
     const el=document.getElementById('mc-'+t);if(el)el.classList.add('hidden');
   });
   const el=document.getElementById('mc-'+id);if(el)el.classList.remove('hidden');
@@ -1323,7 +1578,8 @@ function mTab(id,btn){
     }
   }
   if(id==='avaliacoes')loadMerchantReviews();
-  if(id==='config')loadConfigForm();
+  if(id==='config'){loadConfigForm();loadHorarios();loadMPConfigLoja();loadEstoqueDetalhado();}
+  if(id==='recuperacao')loadRecuperacaoClientes();
 }
 
 // ─── LOJISTA: DELIVERY ──────────────────────────────────
@@ -1376,7 +1632,16 @@ function imprimirPedido(dados){
     ${dados.retorno>0?`<tr><td>Retorno frete</td><td style="text-align:right">R$ ${parseFloat(dados.retorno).toFixed(2)}</td></tr>`:''}
     <tr class="total-row"><td>TOTAL</td><td style="text-align:right">R$ ${totalFinal.toFixed(2)}</td></tr>
     ${dados.pagamento?`<tr><td colspan="2" style="font-size:11px;padding-top:4px">Pagamento: ${payLabels[dados.pagamento]||dados.pagamento}${dados.pagamento==='dinheiro'&&dados.troco?' — Troco p/ R$ '+parseFloat(dados.troco).toFixed(2):''}</td></tr>`:''}
-  </table>`:''}
+  </table>
+  <div class="line"></div>
+  <div style="text-align:center;font-weight:bold;font-size:13px;padding:6px;border:2px solid #000;border-radius:4px">
+    ${dados.pagamento==='pix'
+      ? (dados.pago===true ? '✅ PIX CONFIRMADO — JÁ PAGO' : '⏳ PIX — AGUARDANDO CONFIRMAÇÃO')
+      : dados.pagamento==='dinheiro'
+        ? '💵 DINHEIRO — COBRAR NA ENTREGA'+(dados.troco?' (Troco p/ R$ '+parseFloat(dados.troco||0).toFixed(2)+')':'')
+        : '💳 CARTÃO — COBRAR NA ENTREGA'
+    }
+  </div>`:''}
   <div class="line"></div>
   <div class="center" style="font-size:10px">White Gold — Sistema de Pedidos</div>
   <br>
@@ -1416,6 +1681,83 @@ async function verificarPixPendente(lojaKey){
   }catch(e){console.warn('verificarPixPendente:',e);}
 }
 
+// ─── FILTRO DE DATA DOS PEDIDOS ─────────────────────────
+let _deliveryDateFilter=null; // null = hoje, string 'YYYY-MM-DD' = data específica
+
+function openDeliveryDatePicker(){
+  const inp=document.getElementById('delivery-date-input');
+  if(!inp)return;
+  // Define valor atual no input
+  const today=new Date();
+  const todayStr=today.getFullYear()+'-'+(String(today.getMonth()+1).padStart(2,'0'))+'-'+(String(today.getDate()).padStart(2,'0'));
+  inp.value=_deliveryDateFilter||todayStr;
+  inp.style.position='fixed';
+  inp.style.opacity='0';
+  inp.style.top='100px';
+  inp.style.left='50%';
+  inp.style.zIndex='9999';
+  inp.classList.remove('hidden');
+  inp.focus();
+  inp.click();
+}
+
+function applyDeliveryDateFilter(val){
+  if(!val)return;
+  const today=new Date();
+  const todayStr=today.getFullYear()+'-'+(String(today.getMonth()+1).padStart(2,'0'))+'-'+(String(today.getDate()).padStart(2,'0'));
+  if(val===todayStr){
+    clearDeliveryDateFilter();
+    return;
+  }
+  _deliveryDateFilter=val;
+  // Formata para exibição em pt-BR
+  const parts=val.split('-');
+  const lbl=`${parts[2]}/${parts[1]}/${parts[0]}`;
+  const labelEl=document.getElementById('delivery-date-label');
+  if(labelEl)labelEl.innerText=lbl;
+  const clrBtn=document.getElementById('btn-clear-date-filter');
+  if(clrBtn)clrBtn.classList.remove('hidden');
+  const inp=document.getElementById('delivery-date-input');
+  if(inp)inp.classList.add('hidden');
+  loadDelivery();
+}
+
+function clearDeliveryDateFilter(){
+  _deliveryDateFilter=null;
+  const labelEl=document.getElementById('delivery-date-label');
+  if(labelEl)labelEl.innerText='Hoje';
+  const clrBtn=document.getElementById('btn-clear-date-filter');
+  if(clrBtn)clrBtn.classList.add('hidden');
+  loadDelivery();
+}
+
+function _matchDeliveryDate(d){
+  // Se filtro ativo, compara o campo 'dia' (dd/mm/yyyy) ou ts
+  if(_deliveryDateFilter){
+    const parts=_deliveryDateFilter.split('-');
+    const filterDia=`${parts[2]}/${parts[1]}/${parts[0]}`;
+    if(d.dia) return d.dia===filterDia;
+    // fallback: ts
+    if(d.ts){
+      const od=new Date(d.ts);
+      const odStr=`${String(od.getDate()).padStart(2,'0')}/${String(od.getMonth()+1).padStart(2,'0')}/${od.getFullYear()}`;
+      return odStr===filterDia;
+    }
+    return false;
+  } else {
+    // Padrão: só hoje
+    const today=new Date();
+    const todayDia=`${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+    if(d.dia) return d.dia===todayDia;
+    if(d.ts){
+      const od=new Date(d.ts);
+      const odStr=`${String(od.getDate()).padStart(2,'0')}/${String(od.getMonth()+1).padStart(2,'0')}/${od.getFullYear()}`;
+      return odStr===todayDia;
+    }
+    return false;
+  }
+}
+
 function loadDelivery(){
   if(!curLoja)return;
   const list=document.getElementById('list-delivery-active');
@@ -1432,42 +1774,89 @@ function loadDelivery(){
       if(oc)oc.innerText='0';if(dc)dc.innerText='0';return;
     }
     let foundActive=false,cntOpen=0,cntDone=0;
-    const payLabels={pix:'📱 Pix',dinheiro:'💵 Dinheiro',cartao:'💳 Cartão'};
+    const payLabels={pix:'📱 Pix',dinheiro:'💵 Dinheiro',cartao:'💳 Cart\xE3o'};
+    const novosPendentes=new Set();
     snap.forEach(o=>{
       const d=o.val(),id=o.key;
       const isCancelado=d.status==='cancelado';
       const isDone=d.status==='concluido';
+      const isPrep=d.status==='preparando';
+      const isNovo=d.status==='aberto'||!d.status;
       const isAtivo=!isDone&&!isCancelado;
+      if((isDone||isCancelado)&&!_matchDeliveryDate(d)) return;
       if(isAtivo){foundActive=true;cntOpen++;}
       else if(isDone){cntDone++;}
+      if(isNovo) novosPendentes.add(id);
       const card=document.createElement('div');
       card.className='order-card fade-in';
-      if(isCancelado)card.style.opacity='0.55';
+      if(isCancelado) card.style.opacity='0.55';
+      if(isNovo) card.style.cssText='background:#fffbeb;border:2.5px solid #f59e0b;border-radius:var(--rad);padding:13px;margin-bottom:11px;box-shadow:0 0 0 3px rgba(245,158,11,.25);animation:pulse 1.5s infinite';
       const itens=(d.itens||[]).map(i=>`${i.qty}x ${i.name}`).join(', ');
-      const payStr=d.pagamento?`<div style="font-size:10px;font-weight:700;color:#555;margin-top:2px">${payLabels[d.pagamento]||d.pagamento}${d.pagamento==='dinheiro'&&d.troco?' (Troco p/ R$ '+parseFloat(d.troco).toFixed(2)+')':''}</div>`:'';
-      const retStr=d.retorno>0?`<div style="font-size:10px;font-weight:700;color:#b45309">🔄 Retorno: R$ ${parseFloat(d.retorno).toFixed(2)}</div>`:'';
+      // ── Status de Pagamento ──────────────────────────────
+      const pixPago = d.pago===true;
+      const metodo  = d.pagamento||'pix';
+      // Bolinha de status (verde=pago, vermelho=não pago)
+      const pixBadge=`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${pixPago?'#16a34a':'#e62222'};border:2px solid ${pixPago?'#14532d':'#991b1b'};flex-shrink:0;margin-left:4px" title="${pixPago?'Pago':'Não pago'}"></span>`;
+      // Banner de pagamento detalhado — cor e texto variam por método + status pago
+      let pagoColor,pagoIcon,pagoLabel,pagoSub;
+      if(metodo==='pix'){
+        pagoColor = pixPago ? '#16a34a' : '#dc2626';
+        pagoIcon  = '📱';
+        pagoLabel = 'Pix';
+        pagoSub   = pixPago ? '✅ PAGO — confirmado' : '⏳ AGUARDANDO pagamento Pix';
+      } else if(metodo==='dinheiro'){
+        pagoColor = '#b45309';
+        pagoIcon  = '💵';
+        pagoLabel = 'Dinheiro';
+        pagoSub   = '💰 COBRAR NA ENTREGA'+(d.troco?' — Troco p/ R$ '+parseFloat(d.troco).toFixed(2):'');
+      } else {
+        pagoColor = '#1d4ed8';
+        pagoIcon  = '💳';
+        pagoLabel = 'Cartão/Maquininha';
+        pagoSub   = '💳 COBRAR NA ENTREGA';
+      }
+      const payStr=`<div style="display:inline-flex;align-items:center;gap:6px;background:${pagoColor}18;border:1.5px solid ${pagoColor};border-radius:8px;padding:4px 8px;margin-top:4px">
+        <span style="font-size:13px">${pagoIcon}</span>
+        <div>
+          <div style="font-size:10px;font-weight:900;color:${pagoColor};text-transform:uppercase;letter-spacing:.5px">${pagoLabel}</div>
+          <div style="font-size:9px;font-weight:700;color:${pagoColor};opacity:.85">${pagoSub}</div>
+        </div>
+      </div>`;
+      const retStr=d.retorno>0?`<div style="font-size:10px;font-weight:700;color:#b45309;margin-top:3px">🔄 Retorno: R$ ${parseFloat(d.retorno).toFixed(2)}</div>`:'';
       const foneStr=d.fone?`<div style="font-size:10px;font-weight:700;color:#1d4ed8">📞 ${d.fone}</div>`:'';
-      const pill=isCancelado?'<span class="pill pill-red">❌ Cancelado</span>':isDone?'<span class="pill pill-green">✅ Entregue</span>':'<span class="pill pill-gold">⏳ Pendente</span>';
-      const _dp=JSON.stringify({tipo:'delivery',cliente:d.cliente||'',fone:d.fone||'',endereco:d.endereco||'',itens:d.itens||[],total:d.total||0,retorno:d.retorno||0,troco:d.troco||'',pagamento:d.pagamento||'',hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
-      const printDelBtn=`<button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_dp}" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:4px 8px;font-size:15px;cursor:pointer" title="Imprimir">🖨️</button>`;
       const motivoCancelStr=d.motivoCancel?`<div style="font-size:10px;font-weight:700;color:#e62222;margin-top:3px">Motivo: ${d.motivoCancel}</div>`:'';
+      const _dp=JSON.stringify({tipo:'delivery',cliente:d.cliente||'',fone:d.fone||'',endereco:d.endereco||'',itens:d.itens||[],total:d.total||0,retorno:d.retorno||0,troco:d.troco||'',pagamento:d.pagamento||'',hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
+      const printBtn=`<button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_dp}" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:4px 8px;font-size:15px;cursor:pointer" title="Imprimir">🖨️</button>`;
+      let pill='';
+      if(isCancelado) pill='<span class="pill pill-red">❌ Cancelado</span>';
+      else if(isDone)  pill='<span class="pill pill-green">✅ Entregue</span>';
+      else if(isPrep)  pill='<span class="pill pill-blue">🔥 Preparando</span>';
+      else             pill='<span class="pill pill-gold" style="animation:pulse 1.5s infinite">🔔 Novo Pedido!</span>';
+      const fVal=`<div style="display:flex;align-items:center;gap:6px"><div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>${pixBadge}</div>`;
       let footer='';
       if(isCancelado){
-        footer=`<div style="font-size:11px;color:#e62222;font-weight:700">❌ Pedido cancelado</div>${motivoCancelStr}`;
+        footer=`${fVal}<div style="font-size:11px;color:#e62222;font-weight:700">❌ Cancelado${motivoCancelStr}</div>`;
       } else if(isDone){
-        footer=`<div style="display:flex;align-items:center;gap:6px"><div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>${printDelBtn}</div>`;
+        footer=`<div style="display:flex;align-items:center;gap:6px">${fVal}${printBtn}</div>`;
+      } else if(isPrep){
+        const cliSafe=(d.cliente||'').replace(/'/g,'');
+        const foneSafe=(d.fone||'').replace(/'/g,'');
+        footer=fVal+'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px;width:100%">'
+          +'<button class="btn btn-green btn-sm" onclick="concluirPedido(\'' +id+ '\')">✅ Entregue</button>'
+          +'<button onclick="cancelarPedidoDelivery(\'' +id+ '\',\'' +cliSafe+ '\',\'' +foneSafe+ '\')" style="background:#fee2e2;color:#e62222;border:1.5px solid #e62222;font-size:11px;font-weight:900;border-radius:8px;padding:5px 10px;cursor:pointer">✕ Cancelar</button>'
+          +printBtn+'</div>';
       } else {
-        footer=`<div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <button class="btn btn-green btn-sm" onclick="concluirPedido('${id}')">✓ Concluir</button>
-          <button class="btn btn-sm" onclick="cancelarPedidoDelivery('${id}','${(d.cliente||'').replace(/'/g,'')}','${(d.fone||'').replace(/'/g,'')}')" style="background:#fee2e2;color:#e62222;border:1.5px solid #e62222;font-size:11px;font-weight:900;border-radius:8px;padding:5px 10px;cursor:pointer">✕ Cancelar</button>
-          ${printDelBtn}
-        </div>`;
+        const cliSafe2=(d.cliente||'').replace(/'/g,'');
+        const foneSafe2=(d.fone||'').replace(/'/g,'');
+        footer=fVal+'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;width:100%">'
+          +'<button onclick="aceitarPedido(\'' +id+ '\')" style="flex:1;background:#16a34a;color:#fff;border:2px solid #14532d;border-radius:10px;padding:10px 8px;font-weight:900;font-size:12px;cursor:pointer;box-shadow:0 3px 0 #14532d">✅ Aceitar</button>'
+          +'<button onclick="cancelarPedidoDelivery(\'' +id+ '\',\'' +cliSafe2+ '\',\'' +foneSafe2+ '\')" style="flex:1;background:#e62222;color:#fff;border:2px solid #991b1b;border-radius:10px;padding:10px 8px;font-weight:900;font-size:12px;cursor:pointer;box-shadow:0 3px 0 #991b1b">❌ Recusar</button>'
+          +'</div>';
       }
       card.innerHTML=`
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-weight:900;font-size:15px">${d.cliente||'--'}</div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="font-weight:900;font-size:15px">${d.cliente||'--'}</div>${pixBadge}</div>
             <div style="font-size:10px;opacity:.5">🕐 ${d.hora||''} — ${d.endereco||''}</div>
             ${foneStr}${payStr}${retStr}
           </div>${pill}
@@ -1477,10 +1866,45 @@ function loadDelivery(){
       if(isAtivo||isCancelado) list.appendChild(card);
       else if(hist) hist.appendChild(card);
     });
+    _pendingAlarmOrders=novosPendentes;
+    if(novosPendentes.size>0) startAlarmeContinuo();
+    else stopAlarmeContinuo();
     if(!foundActive&&!list.children.length)
       list.innerHTML='<p style="opacity:.4;font-size:12px;font-weight:700;text-align:center;margin:20px 0">Nenhum pedido ativo</p>';
     const oc=document.getElementById('m-open-count');const dc=document.getElementById('m-done-count');
     if(oc)oc.innerText=cntOpen;if(dc)dc.innerText=cntDone;
+  });
+}
+
+// Aceitar pedido: aberto -> preparando + imprime comanda + vai para aba Cozinha
+function aceitarPedido(id){
+  ackPedidoAlarme(id);
+  const now=new Date();
+  // Busca os dados completos do pedido para imprimir
+  db.ref('orders/'+curLoja+'/'+id).once('value', snap=>{
+    const d=snap.val()||{};
+    db.ref('orders/'+curLoja+'/'+id).update({
+      status:'preparando',
+      aceitoEm:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
+    }).then(()=>{
+      // Imprime comanda automaticamente
+      imprimirPedido({
+        tipo:'delivery',
+        cliente:d.cliente||'',
+        fone:d.fone||'',
+        endereco:d.endereco||'',
+        itens:d.itens||[],
+        total:d.total||0,
+        pagamento:d.pagamento||'',
+        troco:d.troco||'',
+        retorno:d.retorno||0,
+        hora:d.hora||now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+        dia:d.dia||now.toLocaleDateString('pt-BR')
+      });
+      // Navega para aba Cozinha
+      const tabCozinha=document.querySelector('#view-merchant .tab-item:nth-child(2)');
+      mTab('cozinha', tabCozinha);
+    });
   });
 }
 
@@ -1554,25 +1978,120 @@ function concluirPedido(id){
 function loadKitchen(){
   if(!curLoja)return;
   const list=document.getElementById('list-kitchen');if(!list)return;
-  db.ref('mesa-orders/'+curLoja).on('value',snap=>{
+
+  // Listener nas mesas
+  db.ref('mesa-orders/'+curLoja).on('value', ()=>_renderKitchen());
+  // Listener nos pedidos de delivery
+  db.ref('orders/'+curLoja).on('value', ()=>_renderKitchen());
+}
+
+function _renderKitchen(){
+  if(!curLoja)return;
+  const list=document.getElementById('list-kitchen');if(!list)return;
+
+  // Lê mesas e delivery em paralelo
+  Promise.all([
+    db.ref('mesa-orders/'+curLoja).once('value'),
+    db.ref('orders/'+curLoja).once('value')
+  ]).then(([mesaSnap, deliverySnap])=>{
     list.innerHTML='';
     let cnt=0;
-    if(!snap.exists()){list.innerHTML='<p style="opacity:.4;font-size:12px;font-weight:700;text-align:center;margin:20px 0">Sem pedidos na cozinha</p>';updateKitchenBadge(0);return;}
-    snap.forEach(o=>{
-      const d=o.val(),id=o.key;
-      if(d.status!=='cozinha')return;
-      cnt++;
-      const card=document.createElement('div');card.className='order-card fade-in';
-      const itens=(d.itens||[]).map(i=>`${i.qty}x ${i.name}`).join(', ');
-      const _kp=JSON.stringify({tipo:'cozinha',mesa:d.mesa,garcom:d.garcom||'',itens:d.itens||[],total:d.total||0,hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
-      card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red)">MESA ${d.mesa}</div>
-        <div style="display:flex;gap:6px;align-items:center"><span class="pill pill-red">🔥 Cozinha</span><button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_kp}" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:4px 8px;font-size:15px;cursor:pointer" title="Imprimir comanda">🖨️</button></div></div>
-        <div style="font-size:12px;line-height:1.7;border-top:1.5px dashed #ddd;padding-top:7px">${itens}</div>
-        <button class="btn btn-green btn-sm" style="margin-top:10px" onclick="marcarPronto('${id}')">✅ Pronto</button>`;
-      list.appendChild(card);
-    });
-    if(!cnt)list.innerHTML='<p style="opacity:.4;font-size:12px;font-weight:700;text-align:center;margin:20px 0">Sem pedidos na cozinha</p>';
+    const loja=document.getElementById('m-title')?.innerText||'White Gold';
+
+    // ── Pedidos de Mesa (status === 'cozinha') ──
+    if(mesaSnap.exists()){
+      mesaSnap.forEach(o=>{
+        const d=o.val(),id=o.key;
+        if(d.status!=='cozinha')return;
+        cnt++;
+        const card=document.createElement('div');
+        card.className='order-card fade-in';
+        card.style.borderLeft='4px solid var(--blue)';
+        const itens=(d.itens||[]).map(i=>`${i.qty}x ${i.name}${i.desc?' — '+i.desc:''}`).join('\n');
+        const itensHtml=(d.itens||[]).map(i=>`<div style="font-size:12px;font-weight:700;padding:3px 0;border-bottom:1px dashed #eee">• ${i.qty}x <strong>${i.name}</strong>${i.desc?'<br><span style="font-size:10px;opacity:.6;padding-left:12px">'+i.desc+'</span>':''}</div>`).join('');
+        const _kp=JSON.stringify({tipo:'cozinha',mesa:d.mesa,garcom:d.garcom||'',itens:d.itens||[],total:d.total||0,hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
+        card.innerHTML=`
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue)">🍽️ MESA ${d.mesa}</div>
+              ${d.garcom?`<div style="font-size:10px;font-weight:700;opacity:.6">Garçom: ${d.garcom}</div>`:''}
+              <div style="font-size:10px;opacity:.5">${d.hora||''}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="pill pill-blue">🔥 Cozinha</span>
+              <button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_kp}" style="background:var(--black);color:var(--gold);border:2px solid var(--black);border-radius:8px;padding:6px 10px;font-size:15px;cursor:pointer;font-weight:900" title="Imprimir comanda">🖨️</button>
+            </div>
+          </div>
+          <div style="border-top:1.5px dashed #ddd;padding-top:8px;margin-bottom:10px">${itensHtml}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:900;font-size:14px;color:var(--blue)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>
+            <button class="btn btn-green btn-sm" onclick="marcarPronto('${id}')">✅ Pronto</button>
+          </div>`;
+        list.appendChild(card);
+      });
+    }
+
+    // ── Pedidos de Delivery (status === 'preparando') ──
+    if(deliverySnap.exists()){
+      deliverySnap.forEach(o=>{
+        const d=o.val(),id=o.key;
+        if(d.status!=='preparando')return;
+        cnt++;
+        const card=document.createElement('div');
+        card.className='order-card fade-in';
+        card.style.borderLeft='4px solid var(--red)';
+        const itensHtml=(d.itens||[]).map(i=>`<div style="font-size:12px;font-weight:700;padding:3px 0;border-bottom:1px dashed #eee">• ${i.qty}x <strong>${i.name}</strong>${i.desc?'<br><span style="font-size:10px;opacity:.6;padding-left:12px">'+i.desc+'</span>':''}</div>`).join('');
+        const _dp=JSON.stringify({tipo:'delivery',cliente:d.cliente||'',fone:d.fone||'',endereco:d.endereco||'',itens:d.itens||[],total:d.total||0,retorno:d.retorno||0,troco:d.troco||'',pagamento:d.pagamento||'',hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
+
+        // Banner de pagamento detalhado
+        const pixPagoK = d.pago===true;
+        const metodoK  = d.pagamento||'pix';
+        let kPayColor,kPayIcon,kPayLabel,kPaySub;
+        if(metodoK==='pix'){
+          kPayColor = pixPagoK ? '#16a34a' : '#dc2626';
+          kPayIcon  = '📱';
+          kPayLabel = 'Pix';
+          kPaySub   = pixPagoK ? '✅ PAGO' : '⏳ AGUARDANDO Pix';
+        } else if(metodoK==='dinheiro'){
+          kPayColor = '#b45309';
+          kPayIcon  = '💵';
+          kPayLabel = 'Dinheiro';
+          kPaySub   = '💰 COBRAR NA ENTREGA'+(d.troco?' — Troco p/ R$ '+parseFloat(d.troco).toFixed(2):'');
+        } else {
+          kPayColor = '#1d4ed8';
+          kPayIcon  = '💳';
+          kPayLabel = 'Cartão';
+          kPaySub   = '💳 COBRAR NA ENTREGA';
+        }
+        const kPayBanner=`<div style="display:inline-flex;align-items:center;gap:6px;background:${kPayColor}18;border:1.5px solid ${kPayColor};border-radius:8px;padding:4px 8px;margin-top:4px"><span style="font-size:13px">${kPayIcon}</span><div><div style="font-size:10px;font-weight:900;color:${kPayColor};text-transform:uppercase;letter-spacing:.5px">${kPayLabel}</div><div style="font-size:9px;font-weight:700;color:${kPayColor};opacity:.85">${kPaySub}</div></div></div>`;
+
+        card.innerHTML=`
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--red)">🛵 DELIVERY</div>
+              <div style="font-weight:900;font-size:13px">${d.cliente||'--'}</div>
+              ${d.fone?`<div style="font-size:10px;font-weight:700;color:var(--blue)">📞 ${d.fone}</div>`:''}
+              <div style="font-size:10px;opacity:.5">🕐 ${d.hora||''} — aceito às ${d.aceitoEm||d.hora||''}</div>
+              ${kPayBanner}
+              ${d.retorno>0?`<div style="font-size:10px;font-weight:700;color:#b45309;margin-top:2px">🔄 Retorno: R$ ${parseFloat(d.retorno).toFixed(2)}</div>`:''}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-direction:column">
+              <span class="pill pill-red">🔥 Preparando</span>
+              <button onclick="imprimirPedido(JSON.parse(this.dataset.p))" data-p="${_dp}" style="background:var(--black);color:var(--gold);border:2px solid var(--black);border-radius:8px;padding:6px 10px;font-size:15px;cursor:pointer;font-weight:900" title="Imprimir comanda">🖨️</button>
+            </div>
+          </div>
+          <div style="border-top:1.5px dashed #ddd;padding-top:8px;margin-bottom:10px">${itensHtml}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:900;font-size:14px;color:var(--red)">R$ ${parseFloat(d.total||0).toFixed(2)}</div>
+            <button class="btn btn-green btn-sm" onclick="concluirPedido('${id}')">✅ Entregue</button>
+          </div>`;
+        list.appendChild(card);
+      });
+    }
+
+    if(!cnt){
+      list.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:40px;margin-bottom:12px">🟢</div><div style="font-weight:900;font-size:14px">Cozinha livre!</div><div style="font-size:12px;opacity:.5;margin-top:4px">Nenhum pedido em preparo.</div></div>';
+    }
     updateKitchenBadge(cnt);
   });
 }
@@ -1584,12 +2103,23 @@ function updateKitchenBadge(n){
 let _kitchenRef=null;
 function watchKitchenBadge(){
   if(!curLoja)return;
+  // Conta mesas em cozinha + delivery em preparando
+  const update=()=>{
+    Promise.all([
+      db.ref('mesa-orders/'+curLoja).once('value'),
+      db.ref('orders/'+curLoja).once('value')
+    ]).then(([ms,os])=>{
+      let cnt=0;
+      if(ms)ms.forEach(o=>{if(o.val().status==='cozinha')cnt++;});
+      if(os)os.forEach(o=>{if(o.val().status==='preparando')cnt++;});
+      updateKitchenBadge(cnt);
+    });
+  };
   if(_kitchenRef)_kitchenRef.off('value');
   _kitchenRef=db.ref('mesa-orders/'+curLoja);
-  _kitchenRef.on('value',snap=>{
-    let cnt=0;if(snap)snap.forEach(o=>{if(o.val().status==='cozinha')cnt++;});
-    updateKitchenBadge(cnt);
-  });
+  _kitchenRef.on('value', update);
+  // Também monitora orders para badge de delivery
+  db.ref('orders/'+curLoja).on('value', update);
 }
 
 // ─── LOJISTA: MESAS ─────────────────────────────────────
@@ -1829,7 +2359,180 @@ function loadCaixa(){
   });
 }
 
+
+// ══════════════════════════════════════════════════════════
+// ─── MÓDULO BLACK: RECUPERAÇÃO DE CLIENTES ───────────────
+// ══════════════════════════════════════════════════════════
+function loadRecuperacaoClientes(){
+  if(!curLoja) return;
+  if(!temPermissao('recuperacao_clientes')){
+    document.getElementById('mc-recuperacao-inner').innerHTML=`
+      <div class="card" style="text-align:center;padding:28px;background:var(--black);color:#fff">
+        <div style="font-size:48px;margin-bottom:12px">⬛</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);letter-spacing:2px;margin-bottom:8px">PLANO BLACK</div>
+        <div style="font-size:12px;color:#aaa;font-weight:700;line-height:1.7">Este módulo é exclusivo do plano Black.<br>Faça upgrade para recuperar clientes inativos!</div>
+      </div>`;
+    return;
+  }
+  const wrap = document.getElementById('mc-recuperacao-inner');
+  wrap.innerHTML = `
+    <div class="stripe">📲 Recuperação de Clientes</div>
+    <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:14px;line-height:1.6">
+      Clientes que não pedem há mais de 15 dias. Envie uma mensagem para reativar!
+    </div>
+    <div id="recup-loading" style="text-align:center;padding:30px;opacity:.4;font-size:12px;font-weight:700">⏳ Carregando clientes inativos...</div>
+    <div id="recup-list"></div>`;
+
+  const agora = Date.now();
+  const quinzeDiasMs = 15 * 24 * 60 * 60 * 1000;
+  const corte = agora - quinzeDiasMs;
+  const lojaNome = document.getElementById('m-title')?.innerText || 'nossa loja';
+
+  db.ref('orders/'+curLoja).once('value', snap => {
+    const clienteMap = {};
+    if(snap.exists()){
+      snap.forEach(o => {
+        const d = o.val();
+        if(!d.clientKey) return;
+        const ts = d.ts || 0;
+        if(!clienteMap[d.clientKey] || ts > clienteMap[d.clientKey].ultimoTs){
+          clienteMap[d.clientKey] = { nome: d.cliente||'—', fone: d.fone||'', clientKey: d.clientKey, ultimoTs: ts };
+        }
+      });
+    }
+    const inativos = Object.values(clienteMap).filter(c => c.ultimoTs < corte && c.ultimoTs > 0);
+    inativos.sort((a,b) => a.ultimoTs - b.ultimoTs);
+
+    const loadingEl = document.getElementById('recup-loading');
+    const listEl = document.getElementById('recup-list');
+    if(loadingEl) loadingEl.style.display = 'none';
+
+    if(!inativos.length){
+      listEl.innerHTML = '<div style="text-align:center;padding:32px 20px"><div style="font-size:36px;margin-bottom:10px">🎉</div><div style="font-weight:900;font-size:14px">Nenhum cliente inativo!</div><div style="font-size:12px;opacity:.5;margin-top:4px">Todos pediram nos últimos 15 dias.</div></div>';
+      return;
+    }
+    listEl.innerHTML = `<div style="font-size:10px;font-weight:900;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">${inativos.length} cliente${inativos.length!==1?'s':''} inativo${inativos.length!==1?'s':''}</div>`;
+    inativos.forEach(c => {
+      const diasInativos = Math.floor((agora - c.ultimoTs) / (24*60*60*1000));
+      const foneClean = (c.fone||'').replace(/\D/g,'');
+      const foneWA = foneClean.startsWith('55') ? foneClean : '55'+foneClean;
+      const msgWA = encodeURIComponent('Olá '+c.nome.split(' ')[0]+'! A '+lojaNome+' sente sua falta! 😊\nTemos uma oferta especial para você hoje. Que tal fazer um pedido? 🍔');
+      const waUrl = foneClean.length >= 8 ? 'https://wa.me/'+foneWA+'?text='+msgWA : null;
+      const card = document.createElement('div');
+      card.className = 'adm-row fade-in';
+      card.style.cssText = 'flex-direction:column;gap:8px';
+      card.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:900;font-size:13px">${c.nome}</div><div style="font-size:10px;color:#888;font-weight:700;margin-top:2px">${c.fone ? '📞 '+c.fone : '<span style=\"opacity:.4\">Sem telefone</span>'}</div></div><span class="pill pill-red">⏰ ${diasInativos}d sem pedir</span></div>${waUrl ? `<a href="${waUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;padding:10px;border-radius:10px;font-weight:900;font-size:12px;text-decoration:none;border:2px solid #14532d">💬 Enviar Mensagem WhatsApp</a>` : `<div style="font-size:10px;font-weight:700;color:#e62222;text-align:center;padding:8px;background:#fee2e2;border-radius:8px">Sem número de WhatsApp cadastrado</div>`}`;
+      listEl.appendChild(card);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// ─── MÓDULO OURO: PIX CONFIG DA LOJA ─────────────────────
+// ══════════════════════════════════════════════════════════
+function saveMPConfigLoja(){
+  if(!curLoja) return;
+  if(!temPermissao('pix_integrado')){ alert('Disponível apenas nos planos Ouro e Black.'); return; }
+  const token = document.getElementById('cf-mp-token-loja')?.value.trim();
+  const pixKey = document.getElementById('cf-mp-pix-key-loja')?.value.trim();
+  if(!token){ alert('Informe o Access Token do Mercado Pago!'); return; }
+  db.ref('stores/'+curLoja).update({ mp_access_token: token, mp_pix_key: pixKey||'' })
+    .then(()=>{
+      const btn = document.querySelector('#mc-pix-config .btn-black');
+      if(btn){ btn.innerText='Salvo!'; setTimeout(()=>btn.innerText='Salvar configuração Pix',2000); }
+    });
+}
+function loadMPConfigLoja(){
+  if(!curLoja) return;
+  db.ref('stores/'+curLoja).once('value', snap=>{
+    const d = snap.val()||{};
+    const t = document.getElementById('cf-mp-token-loja');
+    const k = document.getElementById('cf-mp-pix-key-loja');
+    if(t && d.mp_access_token) t.value = d.mp_access_token;
+    if(k && d.mp_pix_key) k.value = d.mp_pix_key;
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// ─── MÓDULO OURO: ESTOQUE DETALHADO ──────────────────────
+// ══════════════════════════════════════════════════════════
+function loadEstoqueDetalhado(){
+  if(!curLoja) return;
+  const list = document.getElementById('mc-estoque-list');
+  if(!list) return;
+  list.innerHTML = '<p style="text-align:center;opacity:.4;font-size:12px;font-weight:700;margin:16px 0">Carregando...</p>';
+  db.ref('products/'+curLoja).once('value', snap => {
+    list.innerHTML = '';
+    if(!snap.exists()){ list.innerHTML='<p style="opacity:.4;font-size:12px;text-align:center;margin:16px 0">Nenhum produto cadastrado.</p>'; return; }
+    snap.forEach(p => {
+      const d = p.val(), k = p.key;
+      const stock = d.stock || 0;
+      const alert2 = d.stockAlert || 3;
+      const statusCls = stock===0 ? 'stock-ok' : stock<=alert2 ? 'stock-low' : 'stock-ok';
+      const statusLbl = stock===0 ? 'Ilimitado' : stock<=alert2 ? 'Estoque baixo' : 'OK';
+      const row = document.createElement('div');
+      row.className = 'adm-row';
+      row.innerHTML = `<div style="flex:1;min-width:0"><div style="font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div><span class="stock-badge ${statusCls}" style="margin-top:3px">📦 ${stock===0?'Inf':stock} — ${statusLbl}</span></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><button onclick="ajustarEstoque('${k}',-1,${stock})" style="width:28px;height:28px;border-radius:8px;border:2px solid var(--black);background:#fee2e2;color:var(--red);font-size:16px;cursor:pointer;font-weight:900">-</button><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;min-width:28px;text-align:center">${stock===0?'Inf':stock}</span><button onclick="ajustarEstoque('${k}',+1,${stock})" style="width:28px;height:28px;border-radius:8px;border:2px solid var(--black);background:#dcfce7;color:var(--green);font-size:16px;cursor:pointer;font-weight:900">+</button></div>`;
+      list.appendChild(row);
+    });
+    if(!list.children.length) list.innerHTML='<p style="opacity:.4;font-size:12px;text-align:center;margin:16px 0">Sem produtos com estoque definido.</p>';
+  });
+}
+function ajustarEstoque(prodKey, delta, atual){
+  if(!curLoja) return;
+  if(atual===0 && delta<0) return;
+  const novo = Math.max(0, (atual||0)+delta);
+  db.ref('products/'+curLoja+'/'+prodKey).update({stock:novo, available:novo>0||novo===0})
+    .then(()=>loadEstoqueDetalhado());
+}
+
 // ─── CONFIG ─────────────────────────────────────────────
+// ─── HORÁRIOS DE FUNCIONAMENTO ──────────────────────────
+const _diasSemana=['segunda','terca','quarta','quinta','sexta','sabado','domingo'];
+
+function saveHorarios(){
+  if(!curLoja)return;
+  const ativo=document.getElementById('cf-horario-ativo').checked;
+  const dias={};
+  _diasSemana.forEach(d=>{
+    const aberto=document.getElementById('cf-dia-'+d)?.checked||false;
+    const abertura=document.getElementById('cf-ab-'+d)?.value||'08:00';
+    const fechamento=document.getElementById('cf-fe-'+d)?.value||'22:00';
+    dias[d]={aberto,abertura,fechamento};
+  });
+  db.ref('horarios_funcionamento/'+curLoja).set({ativo,dias}).then(()=>{
+    const btn=document.querySelector('#mc-config .btn-black[onclick="saveHorarios()"]');
+    if(btn){btn.innerText='✅ Horários Salvos!';setTimeout(()=>{btn.innerText='💾 Salvar Horários';},2000);}
+  });
+}
+
+function loadHorarios(){
+  if(!curLoja)return;
+  db.ref('horarios_funcionamento/'+curLoja).once('value',snap=>{
+    if(!snap.exists())return;
+    const h=snap.val();
+    const chk=document.getElementById('cf-horario-ativo');
+    const lbl=document.getElementById('cf-horario-ativo-lbl');
+    const dias=document.getElementById('cf-horarios-dias');
+    if(!chk)return;
+    chk.checked=!!h.ativo;
+    if(lbl)lbl.innerText=h.ativo?'Sim':'Não';
+    if(dias)dias.style.display=h.ativo?'block':'none';
+    if(h.dias){
+      _diasSemana.forEach(d=>{
+        const dc=h.dias[d];if(!dc)return;
+        const dEl=document.getElementById('cf-dia-'+d);
+        const hEl=document.getElementById('cf-hora-'+d);
+        const abEl=document.getElementById('cf-ab-'+d);
+        const feEl=document.getElementById('cf-fe-'+d);
+        if(dEl){dEl.checked=!!dc.aberto;if(hEl)hEl.style.display=dc.aberto?'flex':'none';}
+        if(abEl&&dc.abertura)abEl.value=dc.abertura;
+        if(feEl&&dc.fechamento)feEl.value=dc.fechamento;
+      });
+    }
+  });
+}
+
 function loadConfigForm(){
   loadStoreLink();
   db.ref('stores/'+curLoja).once('value',s=>{
@@ -2084,89 +2787,262 @@ function renderLicBanner(d){
     </div>`;
   }
 }
-// ─── LICENÇA: PLANOS ─────────────────────────────────────
+// ─── LICENÇA: MODAL COMPLETO (PLANO → PERÍODO → PAGAR) ──
 function openLicPayModal(nomeLoja){
   const lojaKey=curLoja;
   db.ref('admin-config').once('value',s=>{
     const cfg=s.val()||{};
-    const planos=[
-      {dias:30, label:'30 dias', sub:'Mensal', valor:parseFloat(cfg.precoMes||49.90), cor:'#1d4ed8', emoji:'📅'},
-      {dias:90, label:'90 dias', sub:'Trimestral', valor:parseFloat(cfg.precoTri||129.90), cor:'#16a34a', emoji:'📆'},
-      {dias:180,label:'180 dias',sub:'Semestral',  valor:parseFloat(cfg.precoSem||239.90), cor:'#7c3aed', emoji:'🗓️'},
-      {dias:365,label:'365 dias',sub:'Anual 🏆',   valor:parseFloat(cfg.precoAno||449.90), cor:'#e62222', emoji:'🎯'}
+
+    // Tabela de preços: [bronze, ouro, black] × [mes, tri, sem, ano]
+    const PRECOS={
+      bronze:{ mes:parseFloat(cfg.bronzeMes||49.90),  tri:parseFloat(cfg.bronzeTri||129.90), sem:parseFloat(cfg.bronzeSem||239.90), ano:parseFloat(cfg.bronzeAno||449.90) },
+      ouro:  { mes:parseFloat(cfg.ouroMes  ||79.90),  tri:parseFloat(cfg.ouroTri  ||209.90), sem:parseFloat(cfg.ouroSem  ||389.90), ano:parseFloat(cfg.ouroAno  ||729.90) },
+      black: { mes:parseFloat(cfg.blackMes ||119.90), tri:parseFloat(cfg.blackTri ||309.90), sem:parseFloat(cfg.blackSem ||579.90), ano:parseFloat(cfg.blackAno ||1099.90) }
+    };
+
+    const PLANOS=[
+      {
+        slug:'bronze', emoji:'🥉', label:'Bronze',
+        cor:'#cd7f32', bg:'#fdf2e0', border:'#cd7f32',
+        desc:'Cardápio digital, pedidos e painel básico.',
+        features:['✅ Painel de pedidos','✅ Cardápio digital','✅ Histórico de vendas','❌ Pix integrado','❌ Gestão de estoque','❌ Recuperação de clientes']
+      },
+      {
+        slug:'ouro', emoji:'🥇', label:'Ouro',
+        cor:'#ca8a04', bg:'#fefce8', border:'#ca8a04',
+        desc:'Tudo do Bronze + controle de estoque avançado.',
+        features:['✅ Painel de pedidos','✅ Cardápio digital','✅ Histórico de vendas','❌ Pix integrado','✅ Gestão de estoque','❌ Recuperação de clientes']
+      },
+      {
+        slug:'black', emoji:'⬛', label:'Black',
+        cor:'#1e1e1e', bg:'#1e1e1e', border:'#444',
+        labelCor:'#f5c518',
+        desc:'Tudo liberado: Pix automático + Recuperação de clientes.',
+        features:['✅ Painel de pedidos','✅ Cardápio digital','✅ Histórico de vendas','✅ Pix integrado','✅ Gestão de estoque','✅ Recuperação de clientes']
+      }
     ];
-    // Remove modal anterior se existir
+
+    const PERIODOS=[
+      {slug:'mes',  label:'1 Mês',    dias:30,  desc:'Mensal',      emoji:'📅', destaque:false},
+      {slug:'tri',  label:'3 Meses',  dias:90,  desc:'Trimestral',  emoji:'📆', destaque:false},
+      {slug:'sem',  label:'6 Meses',  dias:180, desc:'Semestral',   emoji:'🗓️', destaque:true},
+      {slug:'ano',  label:'12 Meses', dias:365, desc:'Anual 🏆',    emoji:'🎯', destaque:false}
+    ];
+
     const old=document.getElementById('lic-pay-modal');if(old)old.remove();
+
     document.body.insertAdjacentHTML('beforeend',`
-    <div id="lic-pay-modal" style="position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.88);display:flex;align-items:flex-end">
-      <div id="lic-pay-inner" style="background:#fff;border-radius:22px 22px 0 0;padding:22px;width:100%;max-height:92vh;overflow-y:auto">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px">💳 Renovar Licença</div>
-          <button onclick="closeLicPayModal()" style="background:none;border:none;font-size:28px;cursor:pointer;line-height:1">×</button>
+    <div id="lic-pay-modal" style="position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.9);display:flex;align-items:flex-end">
+      <div id="lic-pay-inner" style="background:#fff;border-radius:22px 22px 0 0;width:100%;max-height:94dvh;overflow-y:auto;padding-bottom:24px">
+
+        <!-- HEADER -->
+        <div style="position:sticky;top:0;z-index:10;background:#fff;padding:18px 20px 12px;border-bottom:2px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px" id="lic-modal-title">💳 Escolha seu Plano</div>
+            <div style="font-size:10px;font-weight:700;color:#888;margin-top:1px" id="lic-modal-sub">Pagamento seguro via Mercado Pago · Pix</div>
+          </div>
+          <button onclick="closeLicPayModal()" style="background:none;border:none;font-size:28px;cursor:pointer;line-height:1;color:#888">×</button>
         </div>
-        <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:16px">Pagamento seguro via Mercado Pago · Pix ou Cartão</div>
-        <div id="lic-planos-grid" style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px">
-          ${planos.map((p,i)=>`
-          <button onclick="selecionarPlanoLic(${i})" id="plano-btn-${i}" data-dias="${p.dias}" data-valor="${p.valor}" style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:2.5px solid #e2e8f0;border-radius:14px;padding:14px 16px;cursor:pointer;width:100%;transition:all .15s" onmouseover="this.style.borderColor='${p.cor}'" onmouseout="if(!this.classList.contains('plano-sel'))this.style.borderColor='#e2e8f0'">
-            <div style="text-align:left">
-              <div style="font-weight:900;font-size:15px;color:${p.cor}">${p.emoji} ${p.label}</div>
-              <div style="font-size:10px;font-weight:700;opacity:.55">${p.sub}</div>
+
+        <div style="padding:16px 18px 0">
+
+          <!-- ETAPA 1: ESCOLHER PLANO -->
+          <div id="lic-step-plano">
+            <div style="display:flex;gap:10px;flex-direction:column">
+              ${PLANOS.map(p=>`
+              <button onclick="licEscolherPlano('${p.slug}')" style="text-align:left;background:${p.bg};border:2.5px solid ${p.border};border-radius:16px;padding:16px;cursor:pointer;width:100%;transition:all .15s;position:relative" id="lic-plan-btn-${p.slug}">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:24px">${p.emoji}</span>
+                    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:${p.labelCor||p.cor}">${p.label}</div>
+                  </div>
+                  <span style="font-size:18px;color:${p.cor}">→</span>
+                </div>
+                <div style="font-size:10px;font-weight:700;color:${p.slug==='black'?'#aaa':'#666'};margin-bottom:8px">${p.desc}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                  ${p.features.map(f=>`<div style="font-size:9px;font-weight:700;color:${p.slug==='black'?'#ccc':'#555'}">${f}</div>`).join('')}
+                </div>
+                ${p.slug==='ouro'?'<div style="position:absolute;top:-1px;right:12px;background:#ca8a04;color:#fff;font-size:9px;font-weight:900;padding:3px 10px;border-radius:0 0 8px 8px;text-transform:uppercase;letter-spacing:.5px">Mais popular</div>':''}
+              </button>`).join('')}
             </div>
-            <div style="font-weight:900;font-size:20px;color:${p.cor}">R$ ${p.valor.toFixed(2)}</div>
-          </button>`).join('')}
-        </div>
-        <div id="lic-pay-brick-area" class="hidden" style="margin-top:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div id="lic-plano-selecionado" style="font-weight:900;font-size:13px"></div>
-            <button onclick="voltarPlanosLic()" style="font-size:11px;font-weight:700;color:#888;background:none;border:none;cursor:pointer">← Trocar plano</button>
           </div>
-          <div id="lic-mp-brick"></div>
-          <div id="lic-pay-status" class="hidden" style="text-align:center;padding:20px">
-            <div style="font-size:40px;margin-bottom:8px" id="lic-status-emoji">⏳</div>
-            <div style="font-weight:900;font-size:16px" id="lic-status-msg">Processando...</div>
-            <div style="font-size:12px;color:#888;margin-top:6px" id="lic-status-sub"></div>
+
+          <!-- ETAPA 2: ESCOLHER PERÍODO -->
+          <div id="lic-step-periodo" class="hidden">
+            <div id="lic-plano-escolhido-banner" style="margin-bottom:16px"></div>
+            <div style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1px;opacity:.5;margin-bottom:10px">Escolha o período</div>
+            <div style="display:flex;flex-direction:column;gap:10px" id="lic-periodos-grid"></div>
           </div>
+
+          <!-- ETAPA 3: PAGAMENTO -->
+          <div id="lic-step-pagar" class="hidden">
+            <div id="lic-resumo-compra" style="margin-bottom:16px"></div>
+            <div id="lic-mp-brick"></div>
+            <div id="lic-pay-status" class="hidden" style="text-align:center;padding:24px 0">
+              <div style="font-size:44px;margin-bottom:10px" id="lic-status-emoji">⏳</div>
+              <div style="font-weight:900;font-size:17px" id="lic-status-msg">Processando...</div>
+              <div style="font-size:12px;color:#888;margin-top:6px;line-height:1.6" id="lic-status-sub"></div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>`);
+
     // Salvar estado global
-    window._licPayPlanosArr=planos;
-    window._licPayLojaKey=lojaKey;
-    window._licPayLojaNome=nomeLoja;
+    window._licPayLojaKey   = lojaKey;
+    window._licPayLojaNome  = nomeLoja;
+    window._licPrecos       = PRECOS;
+    window._licPlanos       = PLANOS;
+    window._licPeriodos     = PERIODOS;
+    window._licPlanoSlug    = null;
+    window._licPeriodoSlug  = null;
   });
 }
+
+function licEscolherPlano(slug){
+  const planos  = window._licPlanos  || [];
+  const periodos= window._licPeriodos|| [];
+  const precos  = window._licPrecos  || {};
+  const plano   = planos.find(p=>p.slug===slug);
+  if(!plano) return;
+  window._licPlanoSlug = slug;
+  window._planoSelecionadoPagamento = slug;
+
+  // Atualizar título
+  document.getElementById('lic-modal-title').innerText = plano.emoji+' '+plano.label+' — Escolha o período';
+  document.getElementById('lic-modal-sub').innerText   = 'Selecione por quanto tempo quer assinar';
+
+  // Banner do plano escolhido
+  document.getElementById('lic-plano-escolhido-banner').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;background:${plano.bg};border:2px solid ${plano.border};border-radius:12px;padding:12px 14px">
+      <span style="font-size:22px">${plano.emoji}</span>
+      <div style="flex:1">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${plano.labelCor||plano.cor}">${plano.label}</div>
+        <div style="font-size:10px;font-weight:700;color:${slug==='black'?'#aaa':'#666'}">${plano.desc}</div>
+      </div>
+      <button onclick="licVoltarParaPlanos()" style="background:none;border:1.5px solid #ccc;border-radius:8px;padding:5px 10px;font-size:10px;font-weight:900;cursor:pointer;color:#888">Trocar</button>
+    </div>`;
+
+  // Montar períodos com preços
+  const grid = document.getElementById('lic-periodos-grid');
+  grid.innerHTML = '';
+  periodos.forEach(per=>{
+    const valor = (precos[slug]||{})[per.slug] || 0;
+    const btn   = document.createElement('button');
+    btn.style.cssText=`text-align:left;background:${per.destaque?'#f0fdf4':'#f8fafc'};border:2.5px solid ${per.destaque?'var(--green)':'#e2e8f0'};border-radius:14px;padding:14px 16px;cursor:pointer;width:100%;transition:all .15s;position:relative`;
+    btn.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:900;font-size:15px;color:${per.destaque?'var(--green)':'var(--black)'}">${per.emoji} ${per.label} <span style="font-size:10px;font-weight:700;opacity:.6">${per.desc}</span></div>
+          <div style="font-size:11px;font-weight:700;color:#888;margin-top:3px">R$ ${(valor/per.dias).toFixed(2)}/dia</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:${per.destaque?'var(--green)':'var(--black)'}">R$ ${valor.toFixed(2)}</div>
+        </div>
+      </div>
+      ${per.destaque?'<div style="position:absolute;top:-1px;right:12px;background:var(--green);color:#fff;font-size:9px;font-weight:900;padding:3px 10px;border-radius:0 0 8px 8px;text-transform:uppercase;letter-spacing:.5px">Melhor custo-benefício</div>':''}`;
+    btn.onclick = ()=>licEscolherPeriodo(per.slug);
+    btn.onmouseenter = ()=>{ if(!per.destaque) btn.style.borderColor='var(--black)'; };
+    btn.onmouseleave = ()=>{ if(!per.destaque) btn.style.borderColor='#e2e8f0'; };
+    grid.appendChild(btn);
+  });
+
+  // Mostrar step 2
+  document.getElementById('lic-step-plano').classList.add('hidden');
+  document.getElementById('lic-step-periodo').classList.remove('hidden');
+}
+
+function licVoltarParaPlanos(){
+  document.getElementById('lic-modal-title').innerText='💳 Escolha seu Plano';
+  document.getElementById('lic-modal-sub').innerText='Pagamento seguro via Mercado Pago · Pix';
+  document.getElementById('lic-step-periodo').classList.add('hidden');
+  document.getElementById('lic-step-pagar').classList.add('hidden');
+  document.getElementById('lic-step-plano').classList.remove('hidden');
+  if(_mpPaymentCheckInterval){clearInterval(_mpPaymentCheckInterval);_mpPaymentCheckInterval=null;}
+}
+
+function licEscolherPeriodo(periodoSlug){
+  const planos  = window._licPlanos  || [];
+  const periodos= window._licPeriodos|| [];
+  const precos  = window._licPrecos  || {};
+  const planoSlug = window._licPlanoSlug;
+  const plano   = planos.find(p=>p.slug===planoSlug);
+  const periodo = periodos.find(p=>p.slug===periodoSlug);
+  if(!plano||!periodo) return;
+  window._licPeriodoSlug = periodoSlug;
+
+  const valor = (precos[planoSlug]||{})[periodoSlug] || 0;
+
+  // Atualizar título
+  document.getElementById('lic-modal-title').innerText = '💳 Confirmar e Pagar';
+  document.getElementById('lic-modal-sub').innerText   = 'Revise seu pedido e pague via Pix';
+
+  // Resumo
+  document.getElementById('lic-resumo-compra').innerHTML=`
+    <div style="background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:4px">
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px;opacity:.5;margin-bottom:10px">Resumo da compra</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:28px">${plano.emoji}</span>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${plano.labelCor||plano.cor}">Plano ${plano.label}</div>
+          <div style="font-size:11px;font-weight:700;color:#888">${periodo.emoji} ${periodo.label} · ${periodo.desc}</div>
+        </div>
+      </div>
+      <div style="border-top:1.5px dashed #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:10px;font-weight:700;opacity:.5">Loja: ${window._licPayLojaNome||'—'}</div>
+          <div style="font-size:10px;font-weight:700;color:#888;margin-top:2px">Válido por ${periodo.dias} dias após pagamento</div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green)">R$ ${valor.toFixed(2)}</div>
+      </div>
+      <button onclick="licVoltarParaPeriodos()" style="margin-top:10px;background:none;border:1.5px solid #ccc;border-radius:8px;padding:6px 14px;font-size:10px;font-weight:900;cursor:pointer;color:#888;width:100%">← Mudar plano ou período</button>
+    </div>`;
+
+  // Montar objeto plano para criarPreferenciaMP
+  const planoObj = {
+    slug:    planoSlug,
+    label:   `${plano.label} · ${periodo.label}`,
+    emoji:   plano.emoji,
+    cor:     plano.cor,
+    dias:    periodo.dias,
+    valor:   valor
+  };
+  window._licPayPlanosArr = [planoObj];
+
+  // Mostrar step 3
+  document.getElementById('lic-step-periodo').classList.add('hidden');
+  document.getElementById('lic-step-pagar').classList.remove('hidden');
+  document.getElementById('lic-pay-status').classList.add('hidden');
+  document.getElementById('lic-mp-brick').innerHTML='<div style="text-align:center;padding:24px 0;color:#888;font-size:12px;font-weight:700">⏳ Gerando QR Code Pix...</div>';
+
+  criarPreferenciaMP(planoObj, window._licPayLojaKey, window._licPayLojaNome);
+}
+
+function licVoltarParaPeriodos(){
+  document.getElementById('lic-modal-title').innerText = (window._licPlanos?.find(p=>p.slug===window._licPlanoSlug)?.emoji||'')+ ' '+(window._licPlanos?.find(p=>p.slug===window._licPlanoSlug)?.label||'')+'  — Escolha o período';
+  document.getElementById('lic-modal-sub').innerText   = 'Selecione por quanto tempo quer assinar';
+  document.getElementById('lic-step-pagar').classList.add('hidden');
+  document.getElementById('lic-step-periodo').classList.remove('hidden');
+  if(_mpPaymentCheckInterval){clearInterval(_mpPaymentCheckInterval);_mpPaymentCheckInterval=null;}
+}
+
 function closeLicPayModal(){
   if(_mpPaymentCheckInterval){clearInterval(_mpPaymentCheckInterval);_mpPaymentCheckInterval=null;}
   const m=document.getElementById('lic-pay-modal');if(m)m.remove();
 }
-function voltarPlanosLic(){
-  document.getElementById('lic-planos-grid').classList.remove('hidden');
-  document.getElementById('lic-pay-brick-area').classList.add('hidden');
-  // Limpar brick anterior
-  const brick=document.getElementById('lic-mp-brick');if(brick)brick.innerHTML='';
-  if(_mpPaymentCheckInterval){clearInterval(_mpPaymentCheckInterval);_mpPaymentCheckInterval=null;}
-  // Deselect buttons
-  document.querySelectorAll('[id^=plano-btn-]').forEach(b=>{b.classList.remove('plano-sel');b.style.borderColor='#e2e8f0';b.style.background='#f8fafc';});
-}
+
+// Mantido por compatibilidade (chamado de alguns lugares antigos)
+function voltarPlanosLic(){ licVoltarParaPlanos(); }
 function selecionarPlanoLic(idx){
+  // Mapeia idx para o primeiro período por simplicidade (fallback)
   const planos=window._licPayPlanosArr||[];
   const plano=planos[idx];
   if(!plano)return;
-  // Highlight selecionado
-  document.querySelectorAll('[id^=plano-btn-]').forEach((b,i)=>{
-    const cor=planos[i]?.cor||'#e2e8f0';
-    if(i===idx){b.classList.add('plano-sel');b.style.borderColor=cor;b.style.background='#f0f9ff';}
-    else{b.classList.remove('plano-sel');b.style.borderColor='#e2e8f0';b.style.background='#f8fafc';}
-  });
-  // Esconder grid e mostrar brick
-  document.getElementById('lic-planos-grid').classList.add('hidden');
-  document.getElementById('lic-pay-brick-area').classList.remove('hidden');
-  document.getElementById('lic-pay-status').classList.add('hidden');
-  document.getElementById('lic-plano-selecionado').innerHTML=`${plano.emoji} <span style="color:${plano.cor}">${plano.label}</span> — <strong>R$ ${plano.valor.toFixed(2)}</strong>`;
-  document.getElementById('lic-mp-brick').innerHTML='<div style="text-align:center;padding:20px;color:#888;font-size:12px;font-weight:700">⏳ Carregando checkout seguro...</div>';
-  // Criar preferência MP via API
+  window._planoSelecionadoPagamento = plano.slug || 'bronze';
   criarPreferenciaMP(plano, window._licPayLojaKey, window._licPayLojaNome);
 }
+
 
 // ─── MERCADO PAGO: GERAR PIX ─────────────────────────────
 async function criarPreferenciaMP(plano, lojaKey, lojaNome){
@@ -2307,20 +3183,19 @@ async function ativarLicencaAposPagamento(lojaKey, dias, paymentId, valor){
   const now=Date.now();
   const nowDia=new Date(now).toLocaleDateString('pt-BR');
   const nowHora=new Date(now).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  // Plano selecionado no modal de pagamento (definido por selecionarPlanoLic)
+  const planoSlug = window._planoSelecionadoPagamento || 'bronze';
   try{
-    // Buscar licença atual para somar se ainda válida
-    const snap=await db.ref('stores/'+lojaKey+'/licenseExpiry').once('value');
-    // Sempre conta a partir de HOJE — nunca acumula em cima de licença existente
     const novoExpiry=now+(dias*MS_DAY);
-    // Gravar nova licença
+    // Gravar nova licença + plano_ativo + ativo:true automaticamente
+    await atualizarPlanoAposPagamento(lojaKey, dias, planoSlug);
     await db.ref('stores/'+lojaKey).update({
-      licenseExpiry:novoExpiry,
       lastPayment:{paymentId:paymentId||'manual', valor:valor||0, dias, ts:now, dia:nowDia}
     });
     // Registrar pagamento aprovado
     await db.ref('payments/'+lojaKey).push({
       paymentId:paymentId||'manual',
-      dias, valor:valor||0, metodo:'pix',
+      dias, valor:valor||0, metodo:'pix', plano:planoSlug,
       ts:now, dia:nowDia, hora:nowHora,
       lojaNome:window._licPayLojaNome||lojaKey,
       status:'approved'
@@ -2329,13 +3204,11 @@ async function ativarLicencaAposPagamento(lojaKey, dias, paymentId, valor){
     db.ref('admin-notifications').push({
       tipo:'pagamento', lojaKey,
       lojaNome:window._licPayLojaNome||lojaKey,
-      dias, paymentId:paymentId||'manual',
+      dias, paymentId:paymentId||'manual', plano:planoSlug,
       valor:valor||0, ts:now, dia:nowDia, lido:false
     });
-    // UI: mostrar sucesso e desbloquear
     mostrarStatusPagamento('ok','✅','Licença ativada!',
-      'Renovado por '+dias+' dias. Acesso liberado! 🎉', novoExpiry);
-    // Se estava na tela bloqueada, desbloquear
+      'Renovado por '+dias+' dias. Plano '+planoSlug.toUpperCase()+' ativo! 🎉', novoExpiry);
     const overlay=document.getElementById('blocked-overlay');
     if(overlay&&!overlay.classList.contains('hidden')){
       setTimeout(()=>{
@@ -2344,7 +3217,6 @@ async function ativarLicencaAposPagamento(lojaKey, dias, paymentId, valor){
         renderLicBanner({licenseExpiry:novoExpiry});
       },2000);
     }
-    // Fechar modal e atualizar banner
     setTimeout(()=>{
       const m=document.getElementById('lic-pay-modal');if(m)m.remove();
       if(curLoja) db.ref('stores/'+lojaKey).once('value',s=>{if(s.val())renderLicBanner(s.val());});
@@ -2543,6 +3415,7 @@ function loadStores(){
     snap.forEach(c=>{
       const d=c.val();
       if(!getLic(d).ok)return;
+      if(d.ativo===false)return; // loja desativada pelo admin — não mostrar
       // Filtrar por raio máximo de entrega se o cliente tem GPS
       if(userGPS&&d.coords&&d.coords.lat&&d.coords.lon){
         const distKm=haversine(userGPS.lat,userGPS.lon,d.coords.lat,d.coords.lon);
@@ -2695,6 +3568,8 @@ function openCheckout(){
     });
   }
   gotoView('view-checkout','nav-client');
+  // Verificar horário de funcionamento
+  if(curLoja) setTimeout(atualizarBotaoFinalizar, 100);
 }
 function buscarGPS(){
   const btn=document.getElementById('btn-gps');btn.innerText='⏳ Buscando...';
@@ -2765,6 +3640,10 @@ function saveDeliveryOrder(nome,fone,addr,total,frete,retorno,cb){
     total:parseFloat(total)||0,
     frete:parseFloat(frete)||0,
     pagamento:_clientPayMethod||'pix',
+    // pago: true apenas quando Pix for confirmado pelo webhook MP.
+    // dinheiro e cartão = false (cobrar na entrega)
+    // pix = false inicialmente (aguardando confirmação MP)
+    pago: false,
     retorno:parseFloat(retorno)||0,
     status:'aberto',
     clientKey:clientUser?.key||'',
@@ -2772,6 +3651,60 @@ function saveDeliveryOrder(nome,fone,addr,total,frete,retorno,cb){
     ts:now.getTime(),dia:now.toLocaleDateString('pt-BR')
   });
   if(cb) cb(ref.key, now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+}
+
+// ─── TRAVA DE HORÁRIO DE FUNCIONAMENTO ───────────────────
+function checkHorarioFuncionamento(lojaId, callback){
+  db.ref('horarios_funcionamento/'+lojaId).once('value',snap=>{
+    if(!snap.exists()){callback(true,null);return;} // sem config = sempre aberto
+    const h=snap.val();
+    if(!h.ativo){callback(true,null);return;} // desabilitado = sempre aberto
+    const now=new Date();
+    const dayNames=['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+    const today=dayNames[now.getDay()];
+    const dayConfig=h.dias&&h.dias[today];
+    if(!dayConfig||!dayConfig.aberto){callback(false,h);return;}
+    // Verifica horário: formato "HH:MM"
+    const [ah,am]=(dayConfig.abertura||'00:00').split(':').map(Number);
+    const [fh,fm]=(dayConfig.fechamento||'23:59').split(':').map(Number);
+    const abMin=ah*60+am, feMin=fh*60+fm;
+    const nowMin=now.getHours()*60+now.getMinutes();
+    callback(nowMin>=abMin&&nowMin<=feMin,h);
+  });
+}
+
+function atualizarBotaoFinalizar(){
+  if(!curLoja)return;
+  checkHorarioFuncionamento(curLoja,(aberto,h)=>{
+    const btn=document.getElementById('btn-confirmar-pedido');
+    const msgEl=document.getElementById('loja-fechada-msg');
+    const horEl=document.getElementById('loja-fechada-horario');
+    if(!btn)return;
+    if(aberto){
+      btn.disabled=false;
+      btn.style.opacity='1';
+      btn.style.cursor='pointer';
+      btn.innerText='✅ Confirmar Pedido';
+      if(msgEl)msgEl.classList.add('hidden');
+    } else {
+      btn.disabled=true;
+      btn.style.opacity='0.4';
+      btn.style.cursor='not-allowed';
+      btn.innerText='🔒 Loja Fechada no Momento';
+      if(msgEl)msgEl.classList.remove('hidden');
+      if(horEl&&h){
+        const now=new Date();
+        const dayNames=['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+        const today=dayNames[now.getDay()];
+        const dc=h.dias&&h.dias[today];
+        if(dc&&dc.aberto){
+          horEl.innerText=`Hoje: ${dc.abertura||'--'} às ${dc.fechamento||'--'}`;
+        } else {
+          horEl.innerText='Fechado hoje.';
+        }
+      }
+    }
+  });
 }
 
 function enviarWA(){
@@ -3003,6 +3936,9 @@ function doMerchantSignup(){
       basePrice:7,baseKm:3,kmExtra:2,kmMax:20,
       mesasCount:5,garcomCanPay:false,
       licenseExpiry:trialExpiry,
+      plano_ativo:'bronze',
+      ativo:true,
+      vencimento_licenca:new Date(trialExpiry).toLocaleDateString('pt-BR'),
       trialUsed:true,
       createdAt:Date.now()
     };
@@ -3017,6 +3953,7 @@ function doMerchantSignup(){
       loadDelivery();
       watchNotifications(newRef.key);
       watchKitchenBadge();
+      carregarPlanoEAplicarPermissoes(newRef.key);
       alert('🎉 Loja criada! Você tem 30 dias de teste grátis. Bom proveito!');
     });
   });
@@ -3057,6 +3994,19 @@ function doLogin(){
       }
       _resetLoginAttempts('merchant_'+u);
       errEl.classList.add('hidden');
+      if(d.ativo===false){
+        errMsg.innerText='🚫 Conta desativada. Entre em contato com o suporte.';
+        document.getElementById('l-err-btn-cadastro').style.display='none';
+        document.getElementById('l-err-btn-senha').style.display='none';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      // Vencimento automático
+      if(d.licenseExpiry && d.licenseExpiry < Date.now()){
+        db.ref('stores/'+s.key).update({ativo:false});
+        showBlocked(d.name);
+        return;
+      }
       if(!getLic(d).ok){showBlocked(d.name);return;}
       curLoja=s.key;
       document.getElementById('m-title').innerText=d.name;
@@ -3064,6 +4014,7 @@ function doLogin(){
       try{if(remember)localStorage.setItem('wg_merchant',JSON.stringify({u,p,key:s.key}));else localStorage.removeItem('wg_merchant');}catch(e){}
       gotoView('view-merchant',null);renderLicBanner(d);loadDelivery();watchNotifications(s.key);
       verificarPixPendente(s.key);
+      carregarPlanoEAplicarPermissoes(s.key);
     });
   });
 }
@@ -3162,12 +4113,57 @@ function loadAdminData(){
       if(l.ok&&l.dl>7)lp=`<span class="pill pill-green">✅ ${l.dl}d</span>`;
       else if(l.ok)lp=`<span class="pill pill-gold">⚠️ ${l.dl}d</span>`;
       const row=document.createElement('div');row.className='adm-row fade-in';
+      row.style.flexDirection='column';row.style.alignItems='stretch';row.style.gap='10px';
       const imgSrc=d.storeImg||'';
-      row.innerHTML=`<div style="display:flex;align-items:center;gap:10px">${imgSrc?`<img src="${imgSrc}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:2px solid #eee;flex-shrink:0">`:''}<div><div style="font-weight:900;font-size:13px;text-transform:uppercase">${d.name}</div><div style="font-size:10px;opacity:.5;margin-top:1px">Venc: ${exp}</div><div style="margin-top:4px">${lp}</div></div></div><button class="btn btn-gold btn-xs" onclick="openEdit('${k}')">✏️ Editar</button>`;
+      // Plano atual
+      const plano=d.plano_ativo||d.plano||'bronze';
+      const planoLabels={bronze:'🥉 Bronze',ouro:'🥇 Ouro',black:'⬛ Black'};
+      const planoColors={bronze:'#cd7f32',ouro:'#ca8a04',black:'#1e1e1e'};
+      // Status ativo
+      const ativo=d.ativo!==false; // default true se não definido
+      row.innerHTML=`
+        <div style="display:flex;align-items:center;gap:10px">
+          ${imgSrc?`<img src="${imgSrc}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;border:2px solid #eee;flex-shrink:0">`:''}
+          <div style="flex:1">
+            <div style="font-weight:900;font-size:13px;text-transform:uppercase">${d.name}</div>
+            <div style="font-size:10px;opacity:.5;margin-top:1px">Venc: ${exp}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">${lp}<span class="plan-badge plan-${plano}">${planoLabels[plano]||'Bronze'}</span></div>
+          </div>
+          <button class="btn btn-gold btn-xs" onclick="openEdit('${k}')">✏️</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <label style="font-size:10px;font-weight:900;text-transform:uppercase;opacity:.6;flex-shrink:0">Plano:</label>
+          <select onchange="salvarPlanoLoja('${k}',this.value)" style="flex:1;min-width:90px;padding:6px 8px;border-radius:8px;border:2px solid var(--black);font-weight:900;font-size:11px;background:#fff;cursor:pointer">
+            <option value="bronze" ${plano==='bronze'?'selected':''}>🥉 Bronze</option>
+            <option value="ouro" ${plano==='ouro'?'selected':''}>🥇 Ouro</option>
+            <option value="black" ${plano==='black'?'selected':''}>⬛ Black</option>
+          </select>
+          <button onclick="toggleStatusConta('${k}',${ativo},this)" style="padding:6px 12px;border-radius:8px;border:2px solid ${ativo?'var(--green)':'var(--red)'};background:${ativo?'#dcfce7':'#fee2e2'};color:${ativo?'var(--green)':'var(--red)'};font-weight:900;font-size:11px;cursor:pointer;flex-shrink:0">
+            ${ativo?'✅ Ativa':'🚫 Bloqueada'}
+          </button>
+        </div>`;
       list.appendChild(row);
     });
     // Mostrar notificações de pagamento no topo
     loadAdminPayNotif();
+  });
+}
+
+function salvarPlanoLoja(key,plano){
+  // Grava plano_ativo (campo canônico) e plano (retrocompat)
+  db.ref('stores/'+key).update({plano_ativo:plano, plano:plano}).then(()=>{
+    console.log('Plano atualizado:',plano);
+  });
+}
+
+function toggleStatusConta(key,atualAtivo,btn){
+  const novoStatus=!atualAtivo;
+  db.ref('stores/'+key).update({ativo:novoStatus}).then(()=>{
+    btn.style.borderColor=novoStatus?'var(--green)':'var(--red)';
+    btn.style.background=novoStatus?'#dcfce7':'#fee2e2';
+    btn.style.color=novoStatus?'var(--green)':'var(--red)';
+    btn.innerHTML=novoStatus?'✅ Ativa':'🚫 Bloqueada';
+    btn.setAttribute('onclick',`toggleStatusConta('${key}',${novoStatus},this)`);
   });
 }
 
@@ -3584,10 +4580,14 @@ function restoreMerchantSession(){
     const saved=localStorage.getItem('wg_merchant');
     if(!saved)return;
     const s=JSON.parse(saved);
-    db.ref('stores/'+s.key).once('value',snap=>{
+    db.ref('stores/'+s.key).once('value',async snap=>{
       if(!snap.exists())return;
       const d=snap.val();
       if(d.pass!==s.p)return;
+      // Verificar vencimento automático
+      const ok = await verificarVencimentoAutomatico(s.key, d);
+      if(!ok) return;
+      if(d.ativo===false){showBlocked(d.name);return;}
       if(!getLic(d).ok){showBlocked(d.name);return;}
       curLoja=s.key;
       document.getElementById('l-user').value=s.u;
@@ -3598,6 +4598,7 @@ function restoreMerchantSession(){
       loadDelivery();
       watchKitchenBadge();
       watchNotifications(s.key);
+      carregarPlanoEAplicarPermissoes(s.key);
     });
   }catch(e){}
 }
@@ -3639,14 +4640,15 @@ function loadAdmConfig(){
     if(tok)tok.value=d.mpToken||'';
     if(pub)pub.value=d.mpPubKey||'';
     if(wh)wh.value=d.mpWebhook||'';
-    const pm=document.getElementById('adm-preco-mes');
-    const pt=document.getElementById('adm-preco-tri');
-    const ps=document.getElementById('adm-preco-sem');
-    const pa=document.getElementById('adm-preco-ano');
-    if(pm)pm.value=d.precoMes||'';
-    if(pt)pt.value=d.precoTri||'';
-    if(ps)ps.value=d.precoSem||'';
-    if(pa)pa.value=d.precoAno||'';
+    const priceFields={
+      'adm-bronze-mes':'bronzeMes','adm-bronze-tri':'bronzeTri','adm-bronze-sem':'bronzeSem','adm-bronze-ano':'bronzeAno',
+      'adm-ouro-mes':'ouroMes','adm-ouro-tri':'ouroTri','adm-ouro-sem':'ouroSem','adm-ouro-ano':'ouroAno',
+      'adm-black-mes':'blackMes','adm-black-tri':'blackTri','adm-black-sem':'blackSem','adm-black-ano':'blackAno'
+    };
+    Object.entries(priceFields).forEach(([elId,key])=>{
+      const el=document.getElementById(elId);
+      if(el&&d[key]) el.value=d[key];
+    });
   });
 }
 function saveAdmMP(){
@@ -3658,12 +4660,22 @@ function saveAdmMP(){
     .then(()=>alert('✅ Credenciais do MercadoPago salvas!'));
 }
 function saveAdmPrecos(){
-  const precoMes=parseFloat(document.getElementById('adm-preco-mes').value)||0;
-  const precoTri=parseFloat(document.getElementById('adm-preco-tri').value)||0;
-  const precoSem=parseFloat(document.getElementById('adm-preco-sem').value)||0;
-  const precoAno=parseFloat(document.getElementById('adm-preco-ano').value)||0;
-  db.ref('admin-config').update({precoMes,precoTri,precoSem,precoAno})
-    .then(()=>alert('✅ Preços salvos!'));
+  const pf={
+    bronzeMes:'adm-bronze-mes',bronzeTri:'adm-bronze-tri',bronzeSem:'adm-bronze-sem',bronzeAno:'adm-bronze-ano',
+    ouroMes:'adm-ouro-mes',ouroTri:'adm-ouro-tri',ouroSem:'adm-ouro-sem',ouroAno:'adm-ouro-ano',
+    blackMes:'adm-black-mes',blackTri:'adm-black-tri',blackSem:'adm-black-sem',blackAno:'adm-black-ano'
+  };
+  const upd={};
+  Object.entries(pf).forEach(([key,elId])=>{
+    const v=parseFloat(document.getElementById(elId)?.value);
+    if(!isNaN(v)&&v>0) upd[key]=v;
+  });
+  // retrocompat
+  if(upd.bronzeMes)upd.precoMes=upd.bronzeMes;
+  if(upd.bronzeTri)upd.precoTri=upd.bronzeTri;
+  if(upd.bronzeSem)upd.precoSem=upd.bronzeSem;
+  if(upd.bronzeAno)upd.precoAno=upd.bronzeAno;
+  db.ref('admin-config').update(upd).then(()=>alert('✅ Preços salvos para todos os planos!'));
 }
 function saveAdmPass(){
   const np=document.getElementById('adm-new-pass').value;
@@ -4170,6 +5182,22 @@ restoreMerchantSession();
 restoreWaiterSession();
 loadStores();
 setTimeout(checkDirectLink,500);
+
+// ── Verificação automática de vencimento em background ──
+// Roda a cada hora enquanto o app está aberto.
+// Se a loja do lojista logado vencer, bloqueia automaticamente.
+setInterval(()=>{
+  if(!curLoja) return;
+  db.ref('stores/'+curLoja).once('value', snap=>{
+    if(!snap.exists()) return;
+    const d = snap.val();
+    if(d.licenseExpiry && d.licenseExpiry < Date.now() && d.ativo !== false){
+      db.ref('stores/'+curLoja).update({ativo:false}).then(()=>{
+        showBlocked(d.name||curLoja);
+      });
+    }
+  });
+}, 60 * 60 * 1000); // a cada 1 hora
 </script>
 <!-- ══ ORDER SUCCESS ══ -->
 <div id="order-success" class="hidden">
