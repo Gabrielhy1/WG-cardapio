@@ -6797,9 +6797,16 @@ function deleteClient(){
 }
 
 // ─── INIT ───────────────────────────────────────────────
-restoreClientSession();
-restoreMerchantSession();
-restoreWaiterSession();
+// Sempre que a página carrega limpa todas as sessões salvas
+// para o utilizador começar do zero sem entrar em nenhuma conta
+(function limparSessaoInicial(){
+  try{
+    localStorage.removeItem('wg_client');
+    localStorage.removeItem('wg_merchant');
+    localStorage.removeItem('wg_waiter');
+  }catch(e){}
+})();
+// Não restaura nenhuma sessão — cada acesso começa limpo
 loadStores();
 setTimeout(checkDirectLink,500);
 
