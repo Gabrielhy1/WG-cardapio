@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>White Gold OMNI</title>
+<title>White Gold OMNI v27</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@400;700;900&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -129,7 +129,19 @@ body{font-family:'DM Sans',sans-serif;background:#f2f2ed;color:var(--black);over
 .pc-img{width:44px;height:44px;border-radius:8px;object-fit:cover;border:2px solid #eee;flex-shrink:0;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:20px}
 .pd{width:26px;height:26px;border-radius:7px;background:#fee2e2;border:2px solid var(--red);color:var(--red);font-size:15px;cursor:pointer;font-weight:900;flex-shrink:0;margin-left:auto;display:flex;align-items:center;justify-content:center}
 
-/* ── PHOTO PICKER ── */
+/* ── CATEGORY NAV BAR ── */
+.cat-nav{position:-webkit-sticky;position:sticky;top:60px;z-index:1000;background:#fff;display:flex;gap:12px;overflow-x:auto;padding:10px 16px;border-bottom:2.5px solid #f0f0ea;-webkit-overflow-scrolling:touch;scrollbar-width:none;box-shadow:0 4px 6px rgba(0,0,0,.07)}
+.cat-nav::-webkit-scrollbar{display:none}
+.cat-btn{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;background:none;border:2.5px solid #e5e7eb;border-radius:14px;padding:7px 13px;cursor:pointer;transition:all .2s ease;min-width:58px}
+.cat-btn.active,.cat-btn.cat-ativa{background:var(--black);border:3px solid #D4AF37;box-shadow:0 0 0 1.5px #D4AF37;transform:scale(1.06)}
+.cat-btn .cb-icon{font-size:22px;line-height:1}
+.cat-btn .cb-name{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#555;white-space:nowrap}
+.cat-btn.active .cb-name,.cat-btn.cat-ativa .cb-name{color:#D4AF37}
+/* ── HELP BUTTONS (subtle gold) ── */
+.btn-help{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:9px;border:1.5px solid rgba(202,138,4,.5);background:rgba(254,249,195,.6);color:#854d0e;font-size:10px;font-weight:900;cursor:pointer;transition:.15s}
+.btn-help:active{background:rgba(254,249,195,1)}
+/* ── SQUARE PREVIEW ── */
+.pp-square{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;border:var(--border);display:block;margin-bottom:8px}
 .photo-picker{border:2.5px dashed #999;border-radius:14px;padding:16px;text-align:center;cursor:pointer;margin-bottom:10px;transition:.15s;background:#fafafa}
 .photo-picker:active{background:#f0f0f0}
 .pp-preview{width:100%;height:120px;object-fit:cover;border-radius:10px;border:var(--border);display:block;margin-bottom:8px}
@@ -259,13 +271,16 @@ textarea.inp{resize:vertical;min-height:65px}
 </section>
 
 <!-- ══════════ CLIENTE — CARDÁPIO ══════════ -->
-<section id="view-menu" class="view hidden fade-in">
+<section id="view-menu" class="view hidden">
   <div class="topbar">
     <button onclick="gotoView('view-client','nav-client')" style="background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer">←</button>
     <div id="menu-store-name" class="tt">Cardápio</div>
     <span style="font-size:18px">🍽️</span>
   </div>
-  <div style="padding:0 16px;margin-top:14px" id="client-menu-items"></div>
+  <!-- Barra de categorias — fora do scroll, sempre visível no topo -->
+  <div class="cat-nav" id="cat-nav-bar"></div>
+  <!-- Área scrollável — só ela rola -->
+  <div id="client-menu-items" style="padding:120px 16px 100px;margin-top:0"></div>
   <div id="cart-bar" class="cart-bar hidden" style="background:var(--black);border:2px solid var(--gold)">
     <div><div style="font-size:10px;opacity:.6;font-weight:700" id="cart-count-label">0 itens</div><div style="font-weight:900;font-size:16px" id="cart-total">R$ 0,00</div></div>
     <button class="btn btn-red btn-sm" onclick="openCheckout()">Ver Sacola →</button>
@@ -821,13 +836,24 @@ textarea.inp{resize:vertical;min-height:65px}
         <div style="font-size:10px;opacity:.5;margin-top:3px">Câmera ou galeria</div>
       </div>
       <input type="file" id="prod-img-file" accept="image/*" class="hidden" onchange="previewProdImg(this)">
-      <label class="lbl">— ou cole uma URL —</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+        <label class="lbl" style="margin:0;flex:1">— ou cole uma URL —</label>
+        <button class="btn-help" onclick="ajustarFotoProd()">✨ Ajustar Foto</button>
+      </div>
       <input class="inp" id="cf-img-url" placeholder="https://...foto.jpg">
-      <label class="lbl">Nome do item</label><input class="inp" id="cf-nome" placeholder="Ex: X-Burguer">
-      <label class="lbl">Descrição</label><textarea class="inp" id="cf-desc" placeholder="Ingredientes e detalhes..."></textarea>
+      <label class="lbl">Nome do item</label><input class="inp" id="cf-nome" placeholder="Ex: X-Burguer" oninput="sugerirIconeCategoria(this.value,'cf-icone')">
+      <div style="display:flex;gap:8px;margin-bottom:4px;align-items:center">
+        <label class="lbl" style="margin:0;flex:1">Descrição</label>
+        <button class="btn-help" onclick="sugerirDescricaoProd()">💡 Sugerir Descrição</button>
+      </div>
+      <textarea class="inp" id="cf-desc" placeholder="Ingredientes e detalhes..."></textarea>
       <label class="lbl">Preço R$</label><input class="inp" id="cf-preco" type="number" placeholder="22.90">
       <label class="lbl">Categoria</label>
-      <input class="inp" id="cf-categoria" placeholder="Ex: Hambúrgueres, Bebidas, 📦 Combos Especiais">
+      <div style="display:flex;gap:8px;margin-bottom:0">
+        <input class="inp" id="cf-categoria" placeholder="Ex: Hambúrgueres, Bebidas, 📦 Combos Especiais" style="flex:1;margin-bottom:0" oninput="sugerirIconeCategoria(this.value,'cf-icone')">
+        <input class="inp" id="cf-icone" placeholder="🍔" style="width:64px;font-size:22px;text-align:center;margin-bottom:0" maxlength="4">
+      </div>
+      <div style="font-size:9px;opacity:.5;font-weight:700;margin-bottom:10px;margin-top:3px">Emoji da categoria — sugerido automaticamente</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div><label class="lbl">Estoque (qtd)</label><input class="inp" id="cf-stock" type="number" placeholder="Ex: 20 (0=ilimitado)"></div>
         <div><label class="lbl">Alerta em</label><input class="inp" id="cf-stock-alert" type="number" placeholder="Ex: 3"></div>
@@ -1509,6 +1535,9 @@ let clientUser=null; // {id, nome, key}
 function gotoView(id,navId){
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
+  // Mostra/oculta barra de categorias junto com o menu do cliente
+  const catBar=document.getElementById('cat-nav-bar');
+  if(catBar)catBar.style.display=(id==='view-menu')?'flex':'none';
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   if(navId){const nb=document.getElementById(navId);if(nb)nb.classList.add('active');}
   // Para o shuffle das lojas ao sair da tela de lojas
@@ -3050,15 +3079,17 @@ function addProduct(){
   const stock=parseInt(document.getElementById('cf-stock')?.value)||0;
   const stockAlert=parseInt(document.getElementById('cf-stock-alert')?.value)||3;
   const categoria=(document.getElementById('cf-categoria')?.value||'').trim()||'Cardápio';
+  const icone=(document.getElementById('cf-icone')?.value||'').trim()||getCatIconSuggestion(categoria||n);
   const isCombo=document.getElementById('cf-is-combo')?.checked||false;
   const adicionais=[..._tempAdicionais];
   if(!n||!p)return alert('Preencha nome e preço!');
-  db.ref('products/'+curLoja).push({name:n,price:parseFloat(p),desc,img,stock,stockAlert,available:true,categoria,isCombo,adicionais});
+  db.ref('products/'+curLoja).push({name:n,price:parseFloat(p),desc,img,stock,stockAlert,available:true,categoria,icone,isCombo,adicionais});
   document.getElementById('cf-nome').value='';document.getElementById('cf-preco').value='';
   document.getElementById('cf-desc').value='';document.getElementById('cf-img-url').value='';
   const ps=document.getElementById('cf-stock');if(ps)ps.value='';
   const pa=document.getElementById('cf-stock-alert');if(pa)pa.value='';
   const pc=document.getElementById('cf-categoria');if(pc)pc.value='';
+  const pico=document.getElementById('cf-icone');if(pico)pico.value='';
   const pi=document.getElementById('cf-is-combo');if(pi)pi.checked=false;
   const pw=document.getElementById('prod-img-preview-wrap');if(pw)pw.innerHTML='';prodImgB64='';
   _tempAdicionais=[];renderTempAdicionais();
@@ -3109,6 +3140,7 @@ function openEditProd(k){
     document.getElementById('ep-stock-alert').value=d.stockAlert||3;
     document.getElementById('ep-img-url').value=d.img||'';
     const catEl=document.getElementById('ep-categoria');if(catEl)catEl.value=d.categoria||'';
+    const icoEl=document.getElementById('ep-icone');if(icoEl)icoEl.value=d.icone||getCatIconSuggestion(d.categoria||d.name||'');
     const cbEl=document.getElementById('ep-is-combo');if(cbEl)cbEl.checked=!!d.isCombo;
     _epTempAdicionais=d.adicionais?[...d.adicionais]:[];
     renderEpAdicionais();
@@ -3132,11 +3164,12 @@ function saveEditProd(){
   const stock=parseInt(document.getElementById('ep-stock').value)||0;
   const stockAlert=parseInt(document.getElementById('ep-stock-alert').value)||3;
   const categoria=(document.getElementById('ep-categoria')?.value||'').trim()||'Cardápio';
+  const icone=(document.getElementById('ep-icone')?.value||'').trim()||getCatIconSuggestion(categoria);
   const isCombo=document.getElementById('ep-is-combo')?.checked||false;
   const adicionais=[..._epTempAdicionais];
   if(!n||!p)return alert('Preencha nome e preço!');
   const avail=document.getElementById('ep-avail-val').value==='true';
-  const upd={name:n,price:parseFloat(p),desc,stock,stockAlert,available:avail,categoria,isCombo,adicionais};
+  const upd={name:n,price:parseFloat(p),desc,stock,stockAlert,available:avail,categoria,icone,isCombo,adicionais};
   if(img)upd.img=img;
   db.ref('products/'+curLoja+'/'+k).update(upd).then(()=>{
     document.getElementById('modal-edit-prod').classList.add('hidden');
@@ -4568,13 +4601,178 @@ function aprovarPedidoPixPago(pedidoKey, paymentId){
   });
 }
 
-// ─── SHARED MENU RENDERER ───────────────────────────────
+// ─── INTELIGÊNCIA DE CADASTRO ────────────────────────────
+
+// Mapa de sugestões de ícone por palavra-chave
+const _iconMap=[
+  {keys:['hamburguer','hambúrguer','burger','burguer','lanche','lanches','x-'],icon:'🍔'},
+  {keys:['pizza','pizzas','pizzaria'],icon:'🍕'},
+  {keys:['combo','combos','especial','promoção'],icon:'📦'},
+  {keys:['bebida','bebidas','suco','refri','refrigerante','água','cerveja','drink','caldo'],icon:'🥤'},
+  {keys:['sobremesa','sobremesas','doce','sorvete','gelato','brigadeiro','bolo'],icon:'🍦'},
+  {keys:['açaí','acai'],icon:'🍧'},
+  {keys:['pastel','pastéis','pasteis'],icon:'🥟'},
+  {keys:['porção','porcão','fritas','batata'],icon:'🍟'},
+  {keys:['frango','chicken'],icon:'🍗'},
+  {keys:['prato','marmita','executivo','almoço','almoco'],icon:'🍱'},
+  {keys:['sushi','japonês','japones','temaki'],icon:'🍣'},
+  {keys:['salada','saudável'],icon:'🥗'},
+  {keys:['taco','mexicano','wrap'],icon:'🌮'},
+  {keys:['massa','macarrão','macarrao','espaguete','lasanha'],icon:'🍝'},
+  {keys:['churrasco','espeto','grelhado'],icon:'🥩'},
+  {keys:['café','cafe','cappuccino','expresso'],icon:'☕'},
+  {keys:['torta','empada','salgado'],icon:'🥧'},
+  {keys:['pão','sanduiche','sanduíche'],icon:'🥪'},
+  {keys:['crepe','waffle','panqueca'],icon:'🧇'},
+];
+
+function getCatIconSuggestion(text){
+  if(!text)return'🍽️';
+  const t=text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  for(const {keys,icon} of _iconMap){
+    if(keys.some(k=>t.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,''))))return icon;
+  }
+  return'🍽️';
+}
+
+function sugerirIconeCategoria(texto, campoId){
+  const el=document.getElementById(campoId);
+  if(!el)return;
+  // Só sugere se o campo estiver vazio ou já tiver o emoji padrão
+  const atual=el.value.trim();
+  if(atual&&atual!=='🍽️')return; // lojista já escolheu — não sobrescreve
+  const sugestao=getCatIconSuggestion(texto);
+  el.value=sugestao;
+}
+
+// Mapa de sugestões de descrição por palavra-chave
+const _descMap=[
+  {keys:['x-salada','x salada'],desc:'O clássico perfeito! Pão selado, carne suculenta e vegetais sempre frescos.'},
+  {keys:['x-burguer','x-burger','x burguer','x burger'],desc:'Aquele hambúrguer que todo mundo ama! Carne no ponto, queijo derretido e molho especial.'},
+  {keys:['x-tudo','x tudo'],desc:'Carne, queijo, bacon, ovo e muito mais. Para quem não abre mão de nada!'},
+  {keys:['x-bacon','x bacon'],desc:'Pão artesanal, carne suculenta e bacon crocante. Irresistível!'},
+  {keys:['açaí','acai'],desc:'Açaí cremoso e gelado, preparado na hora. Pode adicionar frutas e granola!'},
+  {keys:['pastel','pastel de'],desc:'Massa crocante e recheio generoso. Feito na hora para você!'},
+  {keys:['combo'],desc:'Combo especial com tudo que você precisa! Economize e saboreie mais.'},
+  {keys:['pizza'],desc:'Pizza quentinha, massa crocante e recheio caprichado. Do forno direto pra você!'},
+  {keys:['suco'],desc:'Suco natural, feito na hora com frutas selecionadas. Refrescante e saudável!'},
+  {keys:['frango'],desc:'Frango temperado e macio, preparado com carinho. Uma pedida certa!'},
+  {keys:['batata','fritas'],desc:'Batata frita crocante por fora e macia por dentro. Impossível parar!'},
+  {keys:['sorvete'],desc:'Sorvete cremoso e gelado nas melhores combinações. Perfeito para qualquer hora!'},
+  {keys:['café','cappuccino'],desc:'Aromático e encorpado, preparado na hora. O jeito perfeito de começar o dia!'},
+  {keys:['torta'],desc:'Massa crocante com recheio generoso. Feita com ingredientes frescos todo dia!'},
+  {keys:['salada'],desc:'Salada fresquinha, colorida e cheia de sabor. Leve, saudável e deliciosa!'},
+  {keys:['refrigerante','refri'],desc:'Gelado e refrescante. O acompanhamento perfeito para qualquer pedido!'},
+  {keys:['caldo'],desc:'Caldo quente e reconfortante, feito com ingredientes frescos. Um abraço em forma de sopa!'},
+  {keys:['churrasco','espeto'],desc:'Carne grelhada na brasa, suculenta e temperada. Para os amantes de um bom churrasco!'},
+];
+
+function _getDescSuggestion(nome){
+  const t=(nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  for(const {keys,desc} of _descMap){
+    if(keys.some(k=>t.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,''))))return desc;
+  }
+  // Fallback genérico com o nome do produto
+  const nomeFormatado=nome?nome.charAt(0).toUpperCase()+nome.slice(1).toLowerCase():nome;
+  return`${nomeFormatado} preparado com ingredientes selecionados e muito capricho. Peça já o seu!`;
+}
+
+function sugerirDescricaoProd(){
+  const nome=(document.getElementById('cf-nome')?.value||'').trim();
+  const desc=_getDescSuggestion(nome);
+  const el=document.getElementById('cf-desc');
+  if(el){el.value=desc;el.focus();}
+}
+function sugerirDescricaoEp(){
+  const nome=(document.getElementById('ep-nome')?.value||'').trim();
+  const desc=_getDescSuggestion(nome);
+  const el=document.getElementById('ep-desc');
+  if(el){el.value=desc;el.focus();}
+}
+
+// Botão ✨ Ajustar Foto — aplica object-fit cover e aspect-ratio 1/1 na preview
+function ajustarFotoProd(){
+  const wrap=document.getElementById('prod-img-preview-wrap');
+  if(!wrap)return;
+  const img=wrap.querySelector('img');
+  if(!img){alert('📷 Primeiro selecione ou cole a URL de uma foto!');return;}
+  img.style.width='100%';
+  img.style.aspectRatio='1/1';
+  img.style.objectFit='cover';
+  img.style.borderRadius='12px';
+  img.style.display='block';
+  // Feedback visual
+  const fb=document.createElement('div');
+  fb.style.cssText='font-size:10px;font-weight:900;color:#15803d;text-align:center;margin-top:4px';
+  fb.innerText='✅ Foto ajustada! Ficará quadrada no cardápio.';
+  // Remove feedback anterior se houver
+  const old=wrap.querySelector('.foto-fb');if(old)old.remove();
+  fb.className='foto-fb';wrap.appendChild(fb);
+  setTimeout(()=>fb.remove(),3000);
+}
+
+// ─── BARRA DE CATEGORIAS DINÂMICA ────────────────────────
+function renderCatNavBar(cats, catIconMap){
+  const bar=document.getElementById('cat-nav-bar');
+  if(!bar)return;
+  bar.innerHTML='';
+  const catList=Object.keys(cats);
+  if(catList.length<=1){bar.style.display='none';return;}
+  bar.style.display='flex';
+  catList.forEach((cat,i)=>{
+    const icon=catIconMap[cat]||getCatIconSuggestion(cat);
+    const btn=document.createElement('button');
+    btn.className='cat-btn'+(i===0?' active':'');
+    btn.dataset.cat=cat;
+    btn.innerHTML='<span class="cb-icon">'+icon+'</span><span class="cb-name">'+cat.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{1F300}-\u{1F9FF}\u{1F100}-\u{1F1FF}]+\s*/gu,'')+'</span>';
+    btn.addEventListener('click',()=>{
+      // Destaque visual: remove de todos, aplica no clicado
+      bar.querySelectorAll('.cat-btn').forEach(b=>{
+        b.classList.remove('active','cat-ativa');
+      });
+      btn.classList.add('active','cat-ativa');
+      // Scroll suave: encontra anchor e sobe 80px para a barra nao tapar
+      const anchor=document.getElementById('cat-section-'+encodeURIComponent(cat));
+      if(!anchor)return;
+      const rect=anchor.getBoundingClientRect();
+      const scrollY=window.pageYOffset||document.documentElement.scrollTop;
+      const targetY=rect.top+scrollY-120;
+      window.scrollTo({top:Math.max(0,targetY),behavior:'smooth'});
+    });
+    bar.appendChild(btn);
+  });
+}
+
+// Scroll spy — atualiza botão ativo conforme o cliente rola o cardápio
+function initCatScrollSpy(){
+  const bar=document.getElementById('cat-nav-bar');
+  if(!bar)return;
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        const cat=entry.target.dataset.cat;
+        if(!cat)return;
+        bar.querySelectorAll('.cat-btn').forEach(b=>{
+          const isCat=b.dataset.cat===cat;
+          b.classList.toggle('active',isCat);
+          b.classList.toggle('cat-ativa',isCat);
+        });
+        const activeBtn=bar.querySelector('.cat-btn.active');
+        if(activeBtn)activeBtn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+      }
+    });
+  },{threshold:0.15,rootMargin:'-80px 0px -55% 0px'});
+  document.querySelectorAll('.cat-section-anchor').forEach(el=>observer.observe(el));
+}
+
+// ─── SHARED MENU RENDERER ─────────────────────────────────────────
 window._menuAdicionais = {};
 function renderMenuItems(containerId,lojaId,isWaiter){
   db.ref('products/'+lojaId).on('value',sp=>{
     const list=document.getElementById(containerId);list.innerHTML='';
     if(!sp.exists()){list.innerHTML='<p style="text-align:center;opacity:.4;font-size:12px;font-weight:700;margin-top:30px">Cardápio vazio</p>';return;}
     const cats={};
+    const catIconMap={};
     sp.forEach(p=>{
       const it=p.val(),k=p.key;
       if(it.available===false)return;
@@ -4582,56 +4780,70 @@ function renderMenuItems(containerId,lojaId,isWaiter){
       if(!cats[cat])cats[cat]=[];
       cats[cat].push({it,k});
       window._menuAdicionais[k]=it.adicionais||[];
+      if(!catIconMap[cat]&&it.icone)catIconMap[cat]=it.icone;
     });
     const catKeys=Object.keys(cats).sort((a,b)=>{
       if(a==='📦 Combos Especiais')return 1;
       if(b==='📦 Combos Especiais')return -1;
       return a.localeCompare(b,'pt');
     });
+    const catsOrdenado={};
+    catKeys.forEach(ck=>catsOrdenado[ck]=cats[ck]);
+    if(!isWaiter)renderCatNavBar(catsOrdenado,catIconMap);
     catKeys.forEach(cat=>{
+      const anchor=document.createElement('div');
+      anchor.id='cat-section-'+encodeURIComponent(cat);
+      anchor.dataset.cat=cat;
+      anchor.className='cat-section-anchor';
+      anchor.style.cssText='scroll-margin-top:120px;';
+      list.appendChild(anchor);
       const catDiv=document.createElement('div');
-      catDiv.innerHTML=`<div class="stripe" style="margin-bottom:8px">${cat}</div>`;
+      catDiv.innerHTML='<div class="stripe" style="margin-bottom:8px">'+cat+'</div>';
       list.appendChild(catDiv);
-      cats[cat].forEach(({it,k})=>{
-        const ref=isWaiter?wCart:cart;
-        const qty=ref[k]?.qty||0;
-        const fn=isWaiter?'wQty':'cQty';
-        const qid=isWaiter?'wq-'+k:'cq-'+k;
-        const maxSt=it.stock||0;
-        const imgSrc=it.img||'';
-        const isCombo=!!it.isCombo;
-        const hasAdicionais=!!(it.adicionais&&it.adicionais.length>0);
-        const safeDesc=it.desc?it.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
-        const safeNome=(it.name||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        const comboBadge=isCombo?'<span class="combo-badge">💰 ECONOMIA</span>':'';
-        const imgH=imgSrc
-          ?`<div class="mi-photo"><img src="${imgSrc}" class="mi-img" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mi-ph" style="display:none">🍽️</div></div>`
-          :`<div class="mi-photo"><div class="mi-ph">🍽️</div></div>`;
-        const div=document.createElement('div');
+      cats[cat].forEach(function(obj){
+        var it=obj.it,k=obj.k;
+        var ref=isWaiter?wCart:cart;
+        var qty=(ref[k]&&ref[k].qty)||0;
+        var fn=isWaiter?'wQty':'cQty';
+        var qid=isWaiter?'wq-'+k:'cq-'+k;
+        var maxSt=it.stock||0;
+        var imgSrc=it.img||'';
+        var isCombo=!!it.isCombo;
+        var hasAdicionais=!!(it.adicionais&&it.adicionais.length>0);
+        var safeDesc=it.desc?it.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
+        var safeNome=(it.name||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        var comboBadge=isCombo?'<span class="combo-badge">💰 ECONOMIA</span>':'';
+        var imgH=imgSrc
+          ?('<div class="mi-photo"><img src="'+imgSrc+'" class="mi-img" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'"><div class="mi-ph" style="display:none">🍽️</div></div>')
+          :'<div class="mi-photo"><div class="mi-ph">🍽️</div></div>';
+        var addBtnHtml=hasAdicionais&&!isWaiter
+          ?('<button class="btn-add-adicional" data-k="'+k+'" data-nome="'+safeNome+'" data-price="'+parseFloat(it.price)+'" style="margin-top:6px;background:#fff3cd;border:1.5px solid #ca8a04;color:#7c4a00;border-radius:8px;padding:4px 10px;font-size:9px;font-weight:900;cursor:pointer;display:block;width:100%;text-align:center">➕ Adicionais</button>')
+          :'';
+        var div=document.createElement('div');
         div.className='menu-item fade-in'+(isCombo?' is-combo':'');
         div.id=(isWaiter?'wi':'ci')+k;
-        div.innerHTML=`
-          <div class="mi-inner">
-            <div class="mi-text">
-              ${comboBadge}
-              <div style="font-weight:900;font-size:12px;text-transform:uppercase;line-height:1.3">${safeNome}</div>
-              ${safeDesc?`<div style="font-size:10px;color:#666;font-weight:600;margin:3px 0;line-height:1.4">${safeDesc}</div>`:''}
-              <div style="color:var(--red);font-weight:900;font-size:13px;margin-top:4px">R$ ${parseFloat(it.price).toFixed(2)}</div>
-              ${hasAdicionais&&!isWaiter?`<button class="btn-add-adicional" data-k="${k}" data-nome="${safeNome}" data-price="${parseFloat(it.price)}" style="margin-top:6px;background:#fff3cd;border:1.5px solid #ca8a04;color:#7c4a00;border-radius:8px;padding:4px 10px;font-size:9px;font-weight:900;cursor:pointer;display:block;width:100%;text-align:center">➕ Adicionais</button>`:''}
-            </div>
-            ${imgH}
-          </div>
-          <div style="display:flex;justify-content:flex-end;align-items:center;padding:0 12px 10px">
-            <div class="qctrl">
-              <button class="qbtn" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="-1" onclick="handleQtyBtn(this)">−</button>
-              <span style="font-weight:900;font-size:16px;min-width:20px;text-align:center" id="${qid}">${qty}</span>
-              <button class="qbtn" style="background:var(--red);border-color:var(--rdk)" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="1" onclick="handleQtyBtn(this)">+</button>
-            </div>
-          </div>`;
+        div.innerHTML=
+          '<div class="mi-inner">'+
+            '<div class="mi-text">'+
+              comboBadge+
+              '<div style="font-weight:900;font-size:12px;text-transform:uppercase;line-height:1.3">'+safeNome+'</div>'+
+              (safeDesc?'<div style="font-size:10px;color:#666;font-weight:600;margin:3px 0;line-height:1.4">'+safeDesc+'</div>':'')+
+              '<div style="color:var(--red);font-weight:900;font-size:13px;margin-top:4px">R$ '+parseFloat(it.price).toFixed(2)+'</div>'+
+              addBtnHtml+
+            '</div>'+
+            imgH+
+          '</div>'+
+          '<div style="display:flex;justify-content:flex-end;align-items:center;padding:0 12px 10px">'+
+            '<div class="qctrl">'+
+              '<button class="qbtn" data-k="'+k+'" data-fn="'+fn+'" data-price="'+it.price+'" data-max="'+maxSt+'" data-d="-1" onclick="handleQtyBtn(this)">−</button>'+
+              '<span style="font-weight:900;font-size:16px;min-width:20px;text-align:center" id="'+qid+'">'+qty+'</span>'+
+              '<button class="qbtn" style="background:var(--red);border-color:var(--rdk)" data-k="'+k+'" data-fn="'+fn+'" data-price="'+it.price+'" data-max="'+maxSt+'" data-d="1" onclick="handleQtyBtn(this)">+</button>'+
+            '</div>'+
+          '</div>';
         list.appendChild(div);
       });
     });
-    list.querySelectorAll('.btn-add-adicional').forEach(btn=>{
+    list.querySelectorAll('.btn-add-adicional').forEach(function(btn){
       btn.addEventListener('click',function(){
         openAdicionaisModal(
           this.dataset.k,
@@ -4641,6 +4853,7 @@ function renderMenuItems(containerId,lojaId,isWaiter){
         );
       });
     });
+    if(!isWaiter)setTimeout(initCatScrollSpy,200);
   });
 }
 
@@ -4653,6 +4866,8 @@ function openClientMenu(id){
   }
   curLoja=id;cart={};cartTotal=0;
   document.getElementById('cart-bar').classList.add('hidden');
+  // Reseta scroll da página ao abrir cardápio
+  window.scrollTo({top:0,behavior:'instant'});
   db.ref('stores/'+id).once('value',s=>{
     storeData=s.val();
     document.getElementById('menu-store-name').innerText=storeData.name;
@@ -6624,7 +6839,14 @@ setInterval(()=>{
       </label>
     </div>
     <label class="lbl">Categoria</label>
-    <input class="inp" id="ep-categoria" placeholder="Ex: Hambúrgueres, 📦 Combos Especiais">
+    <div style="display:flex;gap:8px;margin-bottom:0">
+      <input class="inp" id="ep-categoria" placeholder="Ex: Hambúrgueres, 📦 Combos Especiais" style="flex:1;margin-bottom:0" oninput="sugerirIconeCategoria(this.value,'ep-icone')">
+      <input class="inp" id="ep-icone" placeholder="🍔" style="width:64px;font-size:22px;text-align:center;margin-bottom:0" maxlength="4">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;margin-bottom:4px;align-items:center">
+      <label class="lbl" style="margin:0;flex:1">Descrição</label>
+      <button class="btn-help" onclick="sugerirDescricaoEp()">💡 Sugerir Descrição</button>
+    </div>
     <div style="background:#f0fdf4;border:2px solid var(--green);border-radius:12px;padding:13px;margin-bottom:10px">
       <div style="font-weight:900;font-size:12px;color:#15803d;margin-bottom:8px">➕ Adicionais</div>
       <div id="ep-adicionais-list" style="margin-bottom:8px"></div>
