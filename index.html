@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>White Gold OMNI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@400;700;900&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -16,6 +16,7 @@
 #lic-mp-brick .mercadopago-button{border-radius:14px!important;font-weight:900!important}
 /* ── PLAN LOCKS ── */
 .feature-locked{position:relative;pointer-events:none;user-select:none}
+.feature-locked-btn{padding:4px 8px;border-radius:8px;border:1.5px solid #d1d5db;background:#f3f4f6;color:#9ca3af;font-weight:900;font-size:9px;cursor:pointer;opacity:.7;}
 .feature-locked::after{content:attr(data-lock-msg);position:absolute;inset:0;background:rgba(10,10,10,.82);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;display:flex;align-items:center;justify-content:center;border-radius:inherit;z-index:10;text-align:center;padding:4px 8px}
 .plan-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.8px;border:2px solid}
 .plan-bronze{background:#fdf2e0;border-color:#cd7f32;color:#7c4a00}
@@ -292,25 +293,41 @@ textarea.inp{resize:vertical;min-height:65px}
           <button id="co-pay-dinheiro" onclick="selectClientPay('dinheiro')" style="flex:1;padding:10px 4px;border-radius:12px;border:2px solid #e2e8f0;background:#f8fafc;color:#555;font-weight:900;font-size:11px;cursor:pointer">💵 Dinheiro</button>
           <button id="co-pay-cartao" onclick="selectClientPay('cartao')" style="flex:1;padding:10px 4px;border-radius:12px;border:2px solid #e2e8f0;background:#f8fafc;color:#555;font-weight:900;font-size:11px;cursor:pointer">💳 Cartão</button>
         </div>
+        <!-- Aviso dinâmico por método de pagamento -->
+        <div id="co-pay-aviso-pix" style="margin-top:10px">
+          <div id="co-pix-inner"></div>
+        </div>
+        <div id="co-pay-aviso-dinheiro" class="hidden" style="margin-top:10px;background:#fffbeb;border:2px solid #b45309;border-radius:12px;padding:12px">
+          <div style="font-weight:900;font-size:12px;color:#b45309;margin-bottom:4px">💵 Dinheiro — Pagamento na entrega</div>
+          <div style="font-size:11px;font-weight:700;color:#92400e;line-height:1.6">O motoboy irá cobrar na hora da entrega. Tenha o valor em mãos.</div>
+        </div>
+        <div id="co-pay-aviso-cartao" class="hidden" style="margin-top:10px;background:#eff6ff;border:2px solid var(--blue);border-radius:12px;padding:12px">
+          <div style="font-weight:900;font-size:12px;color:var(--blue);margin-bottom:4px">💳 Cartão — Maquininha na entrega</div>
+          <div style="font-size:11px;font-weight:700;color:#1e3a8a;line-height:1.6">O motoboy levará a maquininha. Débito ou crédito.</div>
+        </div>
         <div id="co-troco-row" class="hidden" style="margin-top:8px">
           <label class="lbl">Troco para quanto? (R$)</label>
           <input class="inp" id="co-troco" type="number" placeholder="Ex: 50.00" style="margin-bottom:0">
         </div>
       </div>
-      <button class="btn btn-green" style="margin-top:14px" id="btn-confirmar-pedido" onclick="enviarWA()">✅ Confirmar Pedido</button>
-      <div id="loja-fechada-msg" class="hidden" style="background:#fee2e2;border:2px solid var(--red);border-radius:12px;padding:12px;text-align:center;margin-top:10px">
-        <div style="font-size:20px;margin-bottom:4px">🔒</div>
-        <div style="font-weight:900;font-size:14px;color:var(--red)">Loja Fechada no Momento</div>
-        <div id="loja-fechada-horario" style="font-size:11px;font-weight:700;color:#555;margin-top:4px"></div>
-      </div>
+    </div>
+
+    <!-- Botão GPS obrigatório — sempre visível -->
+    <div id="co-gps-obrigatorio" style="margin-top:14px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:10px">📍 GPS obrigatório para calcular frete e confirmar pedido</div>
+      <button id="btn-gps" class="btn btn-black" onclick="buscarGPS()">📡 Localizar pelo GPS</button>
+      <div id="gps-txt" style="font-size:11px;font-weight:700;color:var(--green);text-align:center;margin:8px 0"></div>
+    </div>
+
+    <!-- Botão confirmar — sempre visível, desbloqueado só após GPS -->
+    <button class="btn btn-green" style="margin-top:12px" id="btn-confirmar-pedido" onclick="enviarWA()" disabled style="opacity:0.45">📡 Localize pelo GPS para confirmar</button>
+    <div id="loja-fechada-msg" class="hidden" style="background:#fee2e2;border:2px solid var(--red);border-radius:12px;padding:12px;text-align:center;margin-top:10px">
+      <div style="font-size:20px;margin-bottom:4px">🔒</div>
+      <div style="font-weight:900;font-size:14px;color:var(--red)">Loja Fechada no Momento</div>
+      <div id="loja-fechada-horario" style="font-size:11px;font-weight:700;color:#555;margin-top:4px"></div>
     </div>
     <div id="co-val-err" class="hidden" style="background:#fee2e2;border:2px solid var(--red);border-radius:12px;padding:12px;text-align:center;margin-top:10px">
-      <div style="font-weight:900;font-size:13px;color:var(--red)">⚠️ Preencha os campos obrigatórios!</div>
-      <div style="font-size:11px;font-weight:700;color:#555;margin-top:4px">Nome e endereço são obrigatórios para enviar o pedido.</div>
-    </div>
-    <div id="no-gps-area" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;font-weight:900;font-size:18px;color:var(--red);margin-bottom:14px"><span>TOTAL</span><span id="co-vt2"></span></div>
-      <button class="btn btn-green" onclick="enviarWASemGPS()">✅ Confirmar Pedido</button>
+      <div style="font-weight:900;font-size:13px;color:var(--red)" id="co-val-err-msg">⚠️ Preencha os campos obrigatórios!</div>
     </div>
   </div>
 </section>
@@ -582,9 +599,16 @@ textarea.inp{resize:vertical;min-height:65px}
       <button onclick="openDeliveryDatePicker()" style="background:var(--black);color:var(--gold);border:none;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer" title="Filtrar por data">📅</button>
       <button id="btn-clear-date-filter" onclick="clearDeliveryDateFilter()" class="hidden" style="background:#fee2e2;color:var(--red);border:1.5px solid var(--red);border-radius:8px;padding:5px 8px;font-size:10px;font-weight:900;cursor:pointer">✕ Limpar</button>
     </div>
+    <!-- Filtros de pagamento (Ouro/Black) — apenas no histórico -->
     <input type="date" id="delivery-date-input" class="hidden" onchange="applyDeliveryDateFilter(this.value)" style="position:absolute;opacity:0;pointer-events:none">
-    <div class="stripe">🛵 Pedidos Ativos</div><div id="list-delivery-active"></div>
-    <div class="stripe" style="margin-top:12px">✅ Histórico</div><div id="list-delivery-done"></div>
+    <div class="stripe">🛵 Pedidos Ativos</div>
+    <div id="list-delivery-active"></div>
+    <!-- Cabeçalho do histórico com filtro de pagamento inline -->
+    <div style="display:flex;align-items:center;gap:8px;margin-top:14px;margin-bottom:6px;flex-wrap:wrap">
+      <div style="font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0">✅ Histórico</div>
+      <div id="delivery-pay-filter-wrap" style="margin-left:auto"></div>
+    </div>
+    <div id="list-delivery-done"></div>
   </div>
 
   <!-- COZINHA (pedidos de mesa aguardando preparo) -->
@@ -652,6 +676,28 @@ textarea.inp{resize:vertical;min-height:65px}
 
   <!-- CONFIG -->
   <div id="mc-config" class="hidden">
+
+    <!-- ══ MEU PLANO (sempre no topo da Config) ══ -->
+    <div class="card" id="mc-meu-plano" style="background:var(--black);border:2px solid var(--gold);color:#fff">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold)">MEU PLANO</div>
+        <div id="mc-plano-badge-config"></div>
+      </div>
+
+      <!-- Status e vencimento -->
+      <div id="mc-plano-info" style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:4px">Carregando...</div>
+      </div>
+
+      <!-- O que cada plano inclui — resumo compacto -->
+      <div id="mc-plano-features-resumo" style="margin-bottom:18px"></div>
+
+      <!-- Botão de upgrade / renovar -->
+      <button onclick="openLicPayModalConfig()" style="width:100%;background:var(--gold);color:var(--black);border:none;border-radius:12px;padding:13px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 0 var(--gold-dk,#8a6000)">
+        💳 VER PLANOS E RENOVAR
+      </button>
+      <div style="font-size:10px;font-weight:700;color:#555;text-align:center;margin-top:8px">Pagamento via Mercado Pago · Pix</div>
+    </div>
     <div class="card">
       <div class="stripe">🕐 Horários de Funcionamento</div>
       <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px;line-height:1.6">Fora do horário, o botão de finalizar pedido fica desabilitado no cardápio.</div>
@@ -776,7 +822,36 @@ textarea.inp{resize:vertical;min-height:65px}
       <hr class="divider">
       <div id="cf-product-list"></div>
     </div>
-    <!-- WRAPPER PIX INTEGRADO (Ouro/Black) -->
+    <!-- FORMAS DE PAGAMENTO ACEITAS -->
+    <div class="card" id="mc-formas-pagamento">
+      <div class="stripe">💰 Formas de Pagamento Aceitas</div>
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:14px;line-height:1.6">Selecione quais formas de pagamento sua loja aceita. Apenas as marcadas aparecem para o cliente no cardápio.</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#f0fdf4;border-radius:10px;border:2px solid #bbf7d0;margin-bottom:8px;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">💵</span>
+          <div><div style="font-weight:900;font-size:13px">Dinheiro</div><div style="font-size:10px;color:#888">Cobrado na entrega</div></div>
+        </div>
+        <input type="checkbox" id="cf-aceita-dinheiro" checked style="width:22px;height:22px;cursor:pointer;accent-color:var(--green)" onchange="saveFormasPagamento()">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#eff6ff;border-radius:10px;border:2px solid #bfdbfe;margin-bottom:8px;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">💳</span>
+          <div><div style="font-weight:900;font-size:13px">Cartão</div><div style="font-size:10px;color:#888">Maquininha na entrega</div></div>
+        </div>
+        <input type="checkbox" id="cf-aceita-cartao" checked style="width:22px;height:22px;cursor:pointer;accent-color:var(--blue)" onchange="saveFormasPagamento()">
+      </label>
+      <label id="cf-pix-row" style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#f0fdf4;border-radius:10px;border:2px solid #bbf7d0;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">📱</span>
+          <div>
+            <div style="font-weight:900;font-size:13px">Pix</div>
+            <div id="cf-pix-row-sub" style="font-size:10px;color:#888">Apenas plano Black com token configurado</div>
+          </div>
+        </div>
+        <input type="checkbox" id="cf-aceita-pix" style="width:22px;height:22px;cursor:pointer;accent-color:var(--green)" onchange="saveFormasPagamento()">
+      </label>
+    </div>
+    <!-- WRAPPER PIX INTEGRADO (Black) -->
     <div id="mc-pix-config" class="card" style="border-radius:var(--rad)">
       <div class="stripe">📱 Pix Integrado (Ouro/Black)</div>
       <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:12px;line-height:1.6">Configure seu Access Token do Mercado Pago para receber Pix automático nos pedidos.</div>
@@ -1054,7 +1129,8 @@ let _planoAtivo = 'bronze'; // 'bronze' | 'ouro' | 'black'
 
 const PLANO_FEATURES = {
   pix_integrado:        ['black'],
-  badge_pix:            ['black'],
+  badge_pix:            ['ouro','black'],   // bolinha de pago/não pago
+  filtro_financeiro:    ['ouro','black'],   // filtros Pagos/Não Pagos
   gestao_estoque:       ['ouro','black'],
   recuperacao_clientes: ['black']
 };
@@ -1095,8 +1171,7 @@ function aplicarLockPlano(elId, feature, msg){
 function carregarPlanoEAplicarPermissoes(lojaKey){
   db.ref('stores/'+lojaKey+'/plano_ativo').once('value', snap => {
     _planoAtivo = snap.val() || 'bronze';
-    aplicarTodasRestricoes();
-    renderPlanoBadgeTopbar();
+    aplicarTodasRestricoes(); // badge já está dentro
   });
   // Listener em tempo real — se admin mudar o plano, UI atualiza sem reload
   db.ref('stores/'+lojaKey+'/plano_ativo').on('value', snap => {
@@ -1104,19 +1179,127 @@ function carregarPlanoEAplicarPermissoes(lojaKey){
     if(novoPlano !== _planoAtivo){
       _planoAtivo = novoPlano;
       aplicarTodasRestricoes();
-      renderPlanoBadgeTopbar();
     }
   });
 }
 
 function aplicarTodasRestricoes(){
-  // Pix integrado — botão Pix no checkout e configurações MP da loja
-  aplicarLockPlano('mc-pix-config',   'pix_integrado', '🔒 Plano OURO ou BLACK');
-  aplicarLockPlano('mc-estoque-wrap', 'gestao_estoque','🔒 Plano OURO ou BLACK');
-  aplicarLockPlano('mc-recuperacao',  'recuperacao_clientes','🔒 Plano BLACK');
-  // Tab de Recuperação de Clientes na navbar do lojista
+  // ── Pix integrado (Black) ─────────────────────────────
+  const pixConfig = document.getElementById('mc-pix-config');
+  if(pixConfig){
+    if(temPermissao('pix_integrado')){
+      // Black — mostra e desbloqueia
+      pixConfig.style.display = '';
+      pixConfig.classList.remove('feature-locked');
+      pixConfig.removeAttribute('data-lock-msg');
+    } else {
+      // Bronze/Ouro — esconde completamente (lojista não cadastra chave Pix)
+      pixConfig.style.display = 'none';
+    }
+  }
+
+  // ── Gestão de Estoque (Ouro/Black) ────────────────────
+  const temEstoque = temPermissao('gestao_estoque');
+  const estoqueWrap = document.getElementById('mc-estoque-wrap');
+  if(estoqueWrap){
+    if(temEstoque){
+      estoqueWrap.classList.remove('feature-locked');
+      estoqueWrap.removeAttribute('data-lock-msg');
+      estoqueWrap.style.display = '';
+    } else {
+      // Bronze: esconde completamente o bloco de estoque
+      estoqueWrap.style.display = 'none';
+    }
+  }
+
+  // ── Recuperação de Clientes (Black) ───────────────────
+  const temRecup = temPermissao('recuperacao_clientes');
+  aplicarLockPlano('mc-recuperacao', 'recuperacao_clientes', '🔒 Plano BLACK');
+
+  // Tab "Clientes" na navbar — só aparece para Black
   const tabRecup = document.getElementById('tab-recuperacao');
-  if(tabRecup) tabRecup.style.display = temPermissao('recuperacao_clientes') ? '' : 'none';
+  if(tabRecup) tabRecup.style.display = temRecup ? '' : 'none';
+
+  // ── Filtros financeiros e badge Pix ──────────────────
+  checkPlanPrivileges();
+
+  // ── Badge de plano na topbar ──────────────────────────
+  renderPlanoBadgeTopbar();
+}
+
+// Variável global de filtro de pagamento
+let _payFilter = 'todos'; // 'todos' | 'pagos' | 'naopagos'
+
+/**
+ * checkPlanPrivileges()
+ * Roda ao carregar e ao mudar de plano.
+ * - Bronze: oculta filtros financeiros, desativa bolinha de pagamento
+ * - Ouro/Black: exibe filtros e bolinha normalmente
+ */
+function checkPlanPrivileges(){
+  const temFiltro = temPermissao('filtro_financeiro');
+  const wrap = document.getElementById('delivery-pay-filter-wrap');
+  if(!wrap) return;
+
+  if(temFiltro){
+    // Ouro/Black — botões funcionais compactos no cabeçalho do histórico
+    wrap.innerHTML = `
+      <div style="display:flex;gap:4px">
+        <button id="btn-filter-todos"     onclick="setPayFilter('todos',this)"    style="padding:4px 8px;border-radius:8px;border:1.5px solid var(--black);background:var(--black);color:var(--gold);font-weight:900;font-size:9px;cursor:pointer">Todos</button>
+        <button id="btn-filter-pagos"     onclick="setPayFilter('pagos',this)"    style="padding:4px 8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#555;font-weight:900;font-size:9px;cursor:pointer">✅ Pagos</button>
+        <button id="btn-filter-nao-pagos" onclick="setPayFilter('naopagos',this)" style="padding:4px 8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#555;font-weight:900;font-size:9px;cursor:pointer">⏳ A receber</button>
+      </div>`;
+  } else {
+    // Bronze — botões aparecem mas com visual bloqueado (.feature-locked)
+    // Clicar em qualquer um mostra o aviso de upgrade
+    _payFilter = 'todos';
+    wrap.innerHTML = `
+      <div style="display:flex;gap:4px;position:relative">
+        <button onclick="alertUpgradeFiltro()" class="feature-locked-btn">Todos</button>
+        <button onclick="alertUpgradeFiltro()" class="feature-locked-btn">✅ Pagos</button>
+        <button onclick="alertUpgradeFiltro()" class="feature-locked-btn">⏳ A receber</button>
+        <span style="position:absolute;top:-1px;right:-1px;background:#f59e0b;color:#fff;font-size:7px;font-weight:900;padding:2px 5px;border-radius:4px;pointer-events:none">🔒</span>
+      </div>`;
+  }
+}
+
+function alertUpgradeFiltro(){
+  const wrap = document.getElementById('delivery-pay-filter-wrap');
+  if(wrap){
+    wrap.style.transform = 'scale(1.03)';
+    setTimeout(()=>{ wrap.style.transform = ''; }, 180);
+  }
+  alert('🔒 Esta função de controle financeiro automático é exclusiva para planos Ouro e Black.\n\nFaça upgrade para filtrar pedidos por status de pagamento e acompanhar quem pagou ou está pendente.');
+}
+
+function setPayFilter(tipo, btn){
+  if(!temPermissao('filtro_financeiro')){ alertUpgradeFiltro(); return; }
+  _payFilter = tipo;
+  // Atualiza visual dos botões
+  ['todos','pagos','nao-pagos'].forEach(id=>{
+    const b = document.getElementById('btn-filter-'+id.replace('-',''));
+    if(!b) return;
+    const isActive = (id==='todos'&&tipo==='todos') || (id==='pagos'&&tipo==='pagos') || (id==='nao-pagos'&&tipo==='naopagos');
+    if(isActive){
+      b.style.background = 'var(--black)'; b.style.color = 'var(--gold)'; b.style.borderColor = 'var(--black)';
+    } else {
+      b.style.background = '#f8fafc'; b.style.color = '#555'; b.style.borderColor = '#e2e8f0';
+    }
+  });
+  // Refiltra a lista atual sem recarregar do Firebase
+  _refilterDelivery();
+}
+
+function _refilterDelivery(){
+  // Filtro de pagamento só aplica no HISTÓRICO — pedidos ativos sempre aparecem todos
+  const hist = document.getElementById('list-delivery-done');
+  if(!hist) return;
+  Array.from(hist.children).forEach(card=>{
+    if(_payFilter === 'todos'){ card.style.display = ''; return; }
+    const pago = card.dataset.pago === 'true';
+    if(_payFilter === 'pagos')    card.style.display = pago ? '' : 'none';
+    if(_payFilter === 'naopagos') card.style.display = !pago ? '' : 'none';
+  });
 }
 
 function renderPlanoBadgeTopbar(){
@@ -1236,7 +1419,8 @@ function watchNotifications(lojaId){
       const v=o.val();
       const t=v.ts||0;
       if(t>maxTs)maxTs=t;
-      // Pedido novo (status 'aberto') → adiciona ao alarme
+      // Só alarmar pedidos ABERTOS (pagamento já confirmado ou método não-pix)
+      // NUNCA alarmar aguardando_pagamento — cliente ainda não pagou
       if(v.status==='aberto' && t>_lastDeliveryTs && _init.d){
         _pendingAlarmOrders.add(o.key);
       }
@@ -1246,7 +1430,6 @@ function watchNotifications(lojaId){
       _lastDeliveryTs=maxTs;
       if(_pendingAlarmOrders.size>0) startAlarmeContinuo();
     }
-    // Verifica se ainda tem pedidos em 'aberto' para manter alarme
     if(_init.d && _pendingAlarmOrders.size>0) startAlarmeContinuo();
   });
   db.ref('mesa-orders/'+lojaId).on('value',snap=>{
@@ -1287,11 +1470,13 @@ function gotoView(id,navId){
   document.getElementById(id).classList.remove('hidden');
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   if(navId){const nb=document.getElementById(navId);if(nb)nb.classList.add('active');}
-  // Oculta carrinho do cliente fora do cardápio/checkout
+  // Para o shuffle das lojas ao sair da tela de lojas
+  if(id!=='view-client' && _storesShuffleInterval){
+    clearInterval(_storesShuffleInterval);_storesShuffleInterval=null;
+  }
   if(id!=='view-menu'&&id!=='view-checkout'){
     try{document.getElementById('cart-bar').classList.add('hidden');}catch(e){}
   }
-  // Oculta carrinho do garçom fora do menu de mesa
   if(id!=='view-wmenu'){
     try{document.getElementById('w-cart-bar').classList.add('hidden');}catch(e){}
   }
@@ -1578,7 +1763,7 @@ function mTab(id,btn){
     }
   }
   if(id==='avaliacoes')loadMerchantReviews();
-  if(id==='config'){loadConfigForm();loadHorarios();loadMPConfigLoja();loadEstoqueDetalhado();}
+  if(id==='config'){loadConfigForm();loadHorarios();loadMPConfigLoja();loadEstoqueDetalhado();loadFormasPagamento();renderMeuPlanoConfig();}
   if(id==='recuperacao')loadRecuperacaoClientes();
 }
 
@@ -1634,9 +1819,11 @@ function imprimirPedido(dados){
     ${dados.pagamento?`<tr><td colspan="2" style="font-size:11px;padding-top:4px">Pagamento: ${payLabels[dados.pagamento]||dados.pagamento}${dados.pagamento==='dinheiro'&&dados.troco?' — Troco p/ R$ '+parseFloat(dados.troco).toFixed(2):''}</td></tr>`:''}
   </table>
   <div class="line"></div>
-  <div style="text-align:center;font-weight:bold;font-size:13px;padding:6px;border:2px solid #000;border-radius:4px">
+  <div style="text-align:center;font-weight:bold;font-size:14px;padding:8px;border:3px solid #000;border-radius:4px;margin-top:4px">
     ${dados.pagamento==='pix'
-      ? (dados.pago===true ? '✅ PIX CONFIRMADO — JÁ PAGO' : '⏳ PIX — AGUARDANDO CONFIRMAÇÃO')
+      ? (dados.pago===true
+          ? '✅ PIX CONFIRMADO — JÁ PAGO'
+          : '⚠️ PIX — AGUARDAR COMPROVANTE\nSolicitar comprovante ao cliente!')
       : dados.pagamento==='dinheiro'
         ? '💵 DINHEIRO — COBRAR NA ENTREGA'+(dados.troco?' (Troco p/ R$ '+parseFloat(dados.troco||0).toFixed(2)+')':'')
         : '💳 CARTÃO — COBRAR NA ENTREGA'
@@ -1774,54 +1961,101 @@ function loadDelivery(){
       if(oc)oc.innerText='0';if(dc)dc.innerText='0';return;
     }
     let foundActive=false,cntOpen=0,cntDone=0;
-    const payLabels={pix:'📱 Pix',dinheiro:'💵 Dinheiro',cartao:'💳 Cart\xE3o'};
     const novosPendentes=new Set();
+
+    // ── Coleta todos os pedidos num array para ordenar ──────
+    const todos=[];
     snap.forEach(o=>{
-      const d=o.val(),id=o.key;
-      const isCancelado=d.status==='cancelado';
-      const isDone=d.status==='concluido';
-      const isPrep=d.status==='preparando';
-      const isNovo=d.status==='aberto'||!d.status;
-      const isAtivo=!isDone&&!isCancelado;
+      const d=o.val();
+      // Pedidos aguardando_pagamento NUNCA aparecem na lista do lojista
+      // Dupla verificação: pelo status E pela flag pago (segurança extra)
+      if(d.status==='aguardando_pagamento') return;
+      // Pix não pago com status desconhecido também fica oculto
+      if(d.pagamento==='pix' && d.pago!==true && d.status!=='aberto' && d.status!=='preparando' && d.status!=='concluido' && d.status!=='cancelado') return;
+      todos.push({id:o.key, d});
+    });
+
+    // ── Ordem: 1=aberto  2=preparando  3=concluido  4=cancelado
+    const prioridade=s=>({aberto:1,preparando:2,concluido:3,cancelado:4}[s]||5);
+    todos.sort((a,b)=>{
+      const pa=prioridade(a.d.status), pb=prioridade(b.d.status);
+      if(pa!==pb) return pa-pb;
+      // Mesmo status → mais recente primeiro (maior ts no topo)
+      return (b.d.ts||0)-(a.d.ts||0);
+    });
+
+    todos.forEach(({id,d})=>{
+      const isCancelado     = d.status==='cancelado';
+      const isDone          = d.status==='concluido';
+      const isPrep          = d.status==='preparando';
+      const isNovo          = d.status==='aberto';
+      const isAtivo         = !isDone && !isCancelado;
+
       if((isDone||isCancelado)&&!_matchDeliveryDate(d)) return;
-      if(isAtivo){foundActive=true;cntOpen++;}
+      if(!isDone&&!isCancelado){foundActive=true;cntOpen++;}
       else if(isDone){cntDone++;}
       if(isNovo) novosPendentes.add(id);
       const card=document.createElement('div');
       card.className='order-card fade-in';
+      // ── Status de Pagamento ──────────────────────────────
+      const pixPago  = d.pago===true;
+      const metodo   = d.pagamento||'pix';
+      card.dataset.pago = String(pixPago);
       if(isCancelado) card.style.opacity='0.55';
       if(isNovo) card.style.cssText='background:#fffbeb;border:2.5px solid #f59e0b;border-radius:var(--rad);padding:13px;margin-bottom:11px;box-shadow:0 0 0 3px rgba(245,158,11,.25);animation:pulse 1.5s infinite';
       const itens=(d.itens||[]).map(i=>`${i.qty}x ${i.name}`).join(', ');
-      // ── Status de Pagamento ──────────────────────────────
-      const pixPago = d.pago===true;
-      const metodo  = d.pagamento||'pix';
-      // Bolinha de status (verde=pago, vermelho=não pago)
-      const pixBadge=`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${pixPago?'#16a34a':'#e62222'};border:2px solid ${pixPago?'#14532d':'#991b1b'};flex-shrink:0;margin-left:4px" title="${pixPago?'Pago':'Não pago'}"></span>`;
-      // Banner de pagamento detalhado — cor e texto variam por método + status pago
-      let pagoColor,pagoIcon,pagoLabel,pagoSub;
-      if(metodo==='pix'){
-        pagoColor = pixPago ? '#16a34a' : '#dc2626';
-        pagoIcon  = '📱';
-        pagoLabel = 'Pix';
-        pagoSub   = pixPago ? '✅ PAGO — confirmado' : '⏳ AGUARDANDO pagamento Pix';
-      } else if(metodo==='dinheiro'){
-        pagoColor = '#b45309';
-        pagoIcon  = '💵';
-        pagoLabel = 'Dinheiro';
-        pagoSub   = '💰 COBRAR NA ENTREGA'+(d.troco?' — Troco p/ R$ '+parseFloat(d.troco).toFixed(2):'');
-      } else {
-        pagoColor = '#1d4ed8';
-        pagoIcon  = '💳';
-        pagoLabel = 'Cartão/Maquininha';
-        pagoSub   = '💳 COBRAR NA ENTREGA';
+      // Bolinha de status — invisível no Bronze, colorida no Ouro/Black
+      const temBadge = temPermissao('badge_pix');
+      let pixBadge = '';
+      if(temBadge){
+        // Ouro/Black: verde = pago, vermelho = não pago
+        const badgeBg = pixPago ? '#16a34a' : '#e62222';
+        const badgeBd = pixPago ? '#14532d' : '#991b1b';
+        const badgeTitle = pixPago ? 'Pago' : 'Não pago';
+        pixBadge = `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${badgeBg};border:2px solid ${badgeBd};flex-shrink:0;margin-left:4px" title="${badgeTitle}"></span>`;
       }
-      const payStr=`<div style="display:inline-flex;align-items:center;gap:6px;background:${pagoColor}18;border:1.5px solid ${pagoColor};border-radius:8px;padding:4px 8px;margin-top:4px">
-        <span style="font-size:13px">${pagoIcon}</span>
-        <div>
-          <div style="font-size:10px;font-weight:900;color:${pagoColor};text-transform:uppercase;letter-spacing:.5px">${pagoLabel}</div>
-          <div style="font-size:9px;font-weight:700;color:${pagoColor};opacity:.85">${pagoSub}</div>
-        </div>
-      </div>`;
+      // Bronze: pixBadge = '' — lista simples sem indicador financeiro
+
+      // Banner de pagamento — grande e destacado para o lojista não ter dúvida
+      let payStr='';
+      if(metodo==='pix'){
+        if(pixPago){
+          payStr=`<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:10px;padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:20px">✅</span>
+            <div>
+              <div style="font-weight:900;font-size:12px;color:#16a34a;text-transform:uppercase;letter-spacing:.5px">PIX CONFIRMADO</div>
+              <div style="font-size:10px;font-weight:700;color:#166534">Pagamento já recebido — pode preparar!</div>
+            </div>
+          </div>`;
+        } else {
+          payStr=`<div style="background:#fee2e2;border:2px solid #e62222;border-radius:10px;padding:8px 12px;margin-top:6px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:20px">⏳</span>
+              <div>
+                <div style="font-weight:900;font-size:12px;color:#e62222;text-transform:uppercase;letter-spacing:.5px">PIX — AGUARDANDO</div>
+                <div style="font-size:10px;font-weight:700;color:#991b1b">Cliente vai enviar comprovante pelo WhatsApp</div>
+              </div>
+            </div>
+            <button onclick="confirmarPagamentoPix('${id}')" style="width:100%;background:#16a34a;color:#fff;border:2px solid #14532d;border-radius:8px;padding:7px;font-weight:900;font-size:11px;cursor:pointer;box-shadow:0 2px 0 #14532d">✅ Marcar Pix como Recebido</button>
+          </div>`;
+        }
+      } else if(metodo==='dinheiro'){
+        payStr=`<div style="background:#fffbeb;border:2px solid #b45309;border-radius:10px;padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">💵</span>
+          <div>
+            <div style="font-weight:900;font-size:12px;color:#b45309;text-transform:uppercase;letter-spacing:.5px">COBRAR NA ENTREGA</div>
+            <div style="font-size:10px;font-weight:700;color:#92400e">${d.troco?'Troco p/ R$ '+parseFloat(d.troco).toFixed(2):'Valor exato ou levar troco'}</div>
+          </div>
+        </div>`;
+      } else {
+        payStr=`<div style="background:#eff6ff;border:2px solid #1d4ed8;border-radius:10px;padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">💳</span>
+          <div>
+            <div style="font-weight:900;font-size:12px;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px">COBRAR NA ENTREGA</div>
+            <div style="font-size:10px;font-weight:700;color:#1e3a8a">Maquininha — débito ou crédito</div>
+          </div>
+        </div>`;
+      }
       const retStr=d.retorno>0?`<div style="font-size:10px;font-weight:700;color:#b45309;margin-top:3px">🔄 Retorno: R$ ${parseFloat(d.retorno).toFixed(2)}</div>`:'';
       const foneStr=d.fone?`<div style="font-size:10px;font-weight:700;color:#1d4ed8">📞 ${d.fone}</div>`:'';
       const motivoCancelStr=d.motivoCancel?`<div style="font-size:10px;font-weight:700;color:#e62222;margin-top:3px">Motivo: ${d.motivoCancel}</div>`:'';
@@ -1863,9 +2097,19 @@ function loadDelivery(){
         </div>
         <div style="font-size:11px;line-height:1.7;border-top:1.5px dashed #ddd;padding-top:7px">${itens}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:9px;flex-wrap:wrap;gap:6px">${footer}</div>`;
-      if(isAtivo||isCancelado) list.appendChild(card);
-      else if(hist) hist.appendChild(card);
-    });
+      if(isAtivo||isCancelado){
+        // Pedidos ativos: SEMPRE aparecem, sem filtro de pagamento
+        list.appendChild(card);
+      } else if(hist){
+        // Histórico: aplica filtro de pagamento se Ouro/Black
+        if(_payFilter !== 'todos' && temPermissao('filtro_financeiro')){
+          const pago = d.pago===true;
+          if(_payFilter==='pagos' && !pago) card.style.display='none';
+          if(_payFilter==='naopagos' && pago) card.style.display='none';
+        }
+        hist.appendChild(card);
+      }
+    }); // fim todos.forEach
     _pendingAlarmOrders=novosPendentes;
     if(novosPendentes.size>0) startAlarmeContinuo();
     else stopAlarmeContinuo();
@@ -1974,6 +2218,19 @@ function concluirPedido(id){
   });
 }
 
+// ─── CONFIRMAR PIX MANUALMENTE ───────────────────────────
+function confirmarPagamentoPix(id){
+  const now=new Date();
+  db.ref('orders/'+curLoja+'/'+id).update({
+    pago:true,
+    pagoEm:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    pagoDia:now.toLocaleDateString('pt-BR')
+  }).then(()=>{
+    // Feedback visual — o listener do Firebase já vai atualizar o card automaticamente
+    console.log('Pix confirmado para pedido',id);
+  });
+}
+
 // ─── LOJISTA: COZINHA ───────────────────────────────────
 function loadKitchen(){
   if(!curLoja)return;
@@ -2043,27 +2300,21 @@ function _renderKitchen(){
         const itensHtml=(d.itens||[]).map(i=>`<div style="font-size:12px;font-weight:700;padding:3px 0;border-bottom:1px dashed #eee">• ${i.qty}x <strong>${i.name}</strong>${i.desc?'<br><span style="font-size:10px;opacity:.6;padding-left:12px">'+i.desc+'</span>':''}</div>`).join('');
         const _dp=JSON.stringify({tipo:'delivery',cliente:d.cliente||'',fone:d.fone||'',endereco:d.endereco||'',itens:d.itens||[],total:d.total||0,retorno:d.retorno||0,troco:d.troco||'',pagamento:d.pagamento||'',hora:d.hora||'',dia:d.dia||''}).replace(/"/g,'&quot;');
 
-        // Banner de pagamento detalhado
+        // Banner de pagamento — grande e destacado
         const pixPagoK = d.pago===true;
         const metodoK  = d.pagamento||'pix';
-        let kPayColor,kPayIcon,kPayLabel,kPaySub;
+        let kPayBanner='';
         if(metodoK==='pix'){
-          kPayColor = pixPagoK ? '#16a34a' : '#dc2626';
-          kPayIcon  = '📱';
-          kPayLabel = 'Pix';
-          kPaySub   = pixPagoK ? '✅ PAGO' : '⏳ AGUARDANDO Pix';
+          if(pixPagoK){
+            kPayBanner=`<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:8px;padding:6px 10px;margin-top:6px;display:flex;align-items:center;gap:6px"><span style="font-size:16px">✅</span><div><div style="font-weight:900;font-size:11px;color:#16a34a">PIX CONFIRMADO — JÁ PAGO</div></div></div>`;
+          } else {
+            kPayBanner=`<div style="background:#fee2e2;border:2px solid #e62222;border-radius:8px;padding:6px 10px;margin-top:6px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:16px">⏳</span><div style="font-weight:900;font-size:11px;color:#e62222">PIX — AGUARDANDO comprovante</div></div><button onclick="confirmarPagamentoPix('${id}')" style="width:100%;background:#16a34a;color:#fff;border:2px solid #14532d;border-radius:6px;padding:5px;font-weight:900;font-size:10px;cursor:pointer">✅ Marcar Pix como Recebido</button></div>`;
+          }
         } else if(metodoK==='dinheiro'){
-          kPayColor = '#b45309';
-          kPayIcon  = '💵';
-          kPayLabel = 'Dinheiro';
-          kPaySub   = '💰 COBRAR NA ENTREGA'+(d.troco?' — Troco p/ R$ '+parseFloat(d.troco).toFixed(2):'');
+          kPayBanner=`<div style="background:#fffbeb;border:2px solid #b45309;border-radius:8px;padding:6px 10px;margin-top:6px;display:flex;align-items:center;gap:6px"><span style="font-size:16px">💵</span><div><div style="font-weight:900;font-size:11px;color:#b45309">COBRAR NA ENTREGA${d.troco?' — Troco p/ R$ '+parseFloat(d.troco).toFixed(2):''}</div></div></div>`;
         } else {
-          kPayColor = '#1d4ed8';
-          kPayIcon  = '💳';
-          kPayLabel = 'Cartão';
-          kPaySub   = '💳 COBRAR NA ENTREGA';
+          kPayBanner=`<div style="background:#eff6ff;border:2px solid #1d4ed8;border-radius:8px;padding:6px 10px;margin-top:6px;display:flex;align-items:center;gap:6px"><span style="font-size:16px">💳</span><div><div style="font-weight:900;font-size:11px;color:#1d4ed8">COBRAR NA ENTREGA — Maquininha</div></div></div>`;
         }
-        const kPayBanner=`<div style="display:inline-flex;align-items:center;gap:6px;background:${kPayColor}18;border:1.5px solid ${kPayColor};border-radius:8px;padding:4px 8px;margin-top:4px"><span style="font-size:13px">${kPayIcon}</span><div><div style="font-size:10px;font-weight:900;color:${kPayColor};text-transform:uppercase;letter-spacing:.5px">${kPayLabel}</div><div style="font-size:9px;font-weight:700;color:${kPayColor};opacity:.85">${kPaySub}</div></div></div>`;
 
         card.innerHTML=`
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -2374,18 +2625,21 @@ function loadRecuperacaoClientes(){
       </div>`;
     return;
   }
+
   const wrap = document.getElementById('mc-recuperacao-inner');
   wrap.innerHTML = `
-    <div class="stripe">📲 Recuperação de Clientes</div>
-    <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:14px;line-height:1.6">
-      Clientes que não pedem há mais de 15 dias. Envie uma mensagem para reativar!
+    <div class="stripe">👥 Todos os Clientes</div>
+    <div id="recup-loading" style="text-align:center;padding:30px;opacity:.4;font-size:12px;font-weight:700">⏳ Carregando clientes...</div>
+    <div id="recup-tabs" class="hidden">
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <button onclick="recupAba('todos',this)" class="recup-tab" style="flex:1;padding:8px;border-radius:10px;font-weight:900;font-size:11px;cursor:pointer;border:2px solid var(--black);background:var(--black);color:var(--gold)">👥 Todos</button>
+        <button onclick="recupAba('inativos',this)" class="recup-tab" style="flex:1;padding:8px;border-radius:10px;font-weight:900;font-size:11px;cursor:pointer;border:2px solid #e2e8f0;background:#f8fafc;color:#555">⏰ Inativos +15d</button>
+      </div>
     </div>
-    <div id="recup-loading" style="text-align:center;padding:30px;opacity:.4;font-size:12px;font-weight:700">⏳ Carregando clientes inativos...</div>
     <div id="recup-list"></div>`;
 
   const agora = Date.now();
   const quinzeDiasMs = 15 * 24 * 60 * 60 * 1000;
-  const corte = agora - quinzeDiasMs;
   const lojaNome = document.getElementById('m-title')?.innerText || 'nossa loja';
 
   db.ref('orders/'+curLoja).once('value', snap => {
@@ -2393,37 +2647,107 @@ function loadRecuperacaoClientes(){
     if(snap.exists()){
       snap.forEach(o => {
         const d = o.val();
-        if(!d.clientKey) return;
+        // Aceita tanto clientKey quanto nome+fone para capturar pedidos não logados
+        const chave = d.clientKey || (d.fone ? 'fone_'+d.fone.replace(/\D/g,'') : null);
+        if(!chave) return;
         const ts = d.ts || 0;
-        if(!clienteMap[d.clientKey] || ts > clienteMap[d.clientKey].ultimoTs){
-          clienteMap[d.clientKey] = { nome: d.cliente||'—', fone: d.fone||'', clientKey: d.clientKey, ultimoTs: ts };
+        if(!clienteMap[chave] || ts > clienteMap[chave].ultimoTs){
+          clienteMap[chave] = {
+            nome: d.cliente || clienteMap[chave]?.nome || '—',
+            fone: d.fone || clienteMap[chave]?.fone || '',
+            clientKey: chave,
+            ultimoTs: ts,
+            totalPedidos: (clienteMap[chave]?.totalPedidos||0) + 1,
+            totalGasto: (clienteMap[chave]?.totalGasto||0) + parseFloat(d.total||0)
+          };
+        } else {
+          clienteMap[chave].totalPedidos = (clienteMap[chave].totalPedidos||0) + 1;
+          clienteMap[chave].totalGasto = (clienteMap[chave].totalGasto||0) + parseFloat(d.total||0);
         }
       });
     }
-    const inativos = Object.values(clienteMap).filter(c => c.ultimoTs < corte && c.ultimoTs > 0);
-    inativos.sort((a,b) => a.ultimoTs - b.ultimoTs);
+
+    const todos = Object.values(clienteMap).filter(c => c.ultimoTs > 0);
+    todos.sort((a,b) => b.ultimoTs - a.ultimoTs); // mais recentes primeiro
+    const inativos = todos.filter(c => c.ultimoTs < (agora - quinzeDiasMs));
+
+    window._recupTodos = todos;
+    window._recupInativos = inativos;
+    window._recupLojaNome = lojaNome;
+    window._recupAgora = agora;
 
     const loadingEl = document.getElementById('recup-loading');
-    const listEl = document.getElementById('recup-list');
     if(loadingEl) loadingEl.style.display = 'none';
 
-    if(!inativos.length){
-      listEl.innerHTML = '<div style="text-align:center;padding:32px 20px"><div style="font-size:36px;margin-bottom:10px">🎉</div><div style="font-weight:900;font-size:14px">Nenhum cliente inativo!</div><div style="font-size:12px;opacity:.5;margin-top:4px">Todos pediram nos últimos 15 dias.</div></div>';
-      return;
-    }
-    listEl.innerHTML = `<div style="font-size:10px;font-weight:900;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">${inativos.length} cliente${inativos.length!==1?'s':''} inativo${inativos.length!==1?'s':''}</div>`;
-    inativos.forEach(c => {
-      const diasInativos = Math.floor((agora - c.ultimoTs) / (24*60*60*1000));
-      const foneClean = (c.fone||'').replace(/\D/g,'');
-      const foneWA = foneClean.startsWith('55') ? foneClean : '55'+foneClean;
-      const msgWA = encodeURIComponent('Olá '+c.nome.split(' ')[0]+'! A '+lojaNome+' sente sua falta! 😊\nTemos uma oferta especial para você hoje. Que tal fazer um pedido? 🍔');
-      const waUrl = foneClean.length >= 8 ? 'https://wa.me/'+foneWA+'?text='+msgWA : null;
-      const card = document.createElement('div');
-      card.className = 'adm-row fade-in';
-      card.style.cssText = 'flex-direction:column;gap:8px';
-      card.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:900;font-size:13px">${c.nome}</div><div style="font-size:10px;color:#888;font-weight:700;margin-top:2px">${c.fone ? '📞 '+c.fone : '<span style=\"opacity:.4\">Sem telefone</span>'}</div></div><span class="pill pill-red">⏰ ${diasInativos}d sem pedir</span></div>${waUrl ? `<a href="${waUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;padding:10px;border-radius:10px;font-weight:900;font-size:12px;text-decoration:none;border:2px solid #14532d">💬 Enviar Mensagem WhatsApp</a>` : `<div style="font-size:10px;font-weight:700;color:#e62222;text-align:center;padding:8px;background:#fee2e2;border-radius:8px">Sem número de WhatsApp cadastrado</div>`}`;
-      listEl.appendChild(card);
-    });
+    const tabsEl = document.getElementById('recup-tabs');
+    if(tabsEl) tabsEl.classList.remove('hidden');
+
+    // Mostra aba "todos" por padrão
+    recupAba('todos', document.querySelector('.recup-tab'));
+  });
+}
+
+function recupAba(aba, btn){
+  // Highlight aba ativa
+  document.querySelectorAll('.recup-tab').forEach(b=>{
+    b.style.background='#f8fafc';b.style.color='#555';b.style.borderColor='#e2e8f0';
+  });
+  if(btn){btn.style.background='var(--black)';btn.style.color='var(--gold)';btn.style.borderColor='var(--black)';}
+
+  const listEl = document.getElementById('recup-list');
+  if(!listEl) return;
+
+  const lista = aba==='inativos' ? (window._recupInativos||[]) : (window._recupTodos||[]);
+  const lojaNome = window._recupLojaNome || 'nossa loja';
+  const agora = window._recupAgora || Date.now();
+  const quinzeDiasMs = 15*24*60*60*1000;
+
+  if(!lista.length){
+    listEl.innerHTML = aba==='inativos'
+      ? '<div style="text-align:center;padding:28px"><div style="font-size:36px;margin-bottom:10px">🎉</div><div style="font-weight:900">Nenhum cliente inativo!</div><div style="font-size:12px;opacity:.5;margin-top:4px">Todos pediram nos últimos 15 dias.</div></div>'
+      : '<div style="text-align:center;padding:28px"><div style="font-size:36px;margin-bottom:10px">🛍️</div><div style="font-weight:900">Nenhum pedido ainda</div></div>';
+    return;
+  }
+
+  const label = aba==='inativos'
+    ? `<div style="font-size:10px;font-weight:900;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">⏰ ${lista.length} cliente${lista.length!==1?'s':''} sem pedir há +15 dias</div>`
+    : `<div style="font-size:10px;font-weight:900;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">👥 ${lista.length} cliente${lista.length!==1?'s':''} cadastrados</div>`;
+
+  listEl.innerHTML = label;
+
+  lista.forEach(c => {
+    const diasDesde = Math.floor((agora - c.ultimoTs) / (24*60*60*1000));
+    const isInativo = c.ultimoTs < (agora - quinzeDiasMs);
+    const foneClean = (c.fone||'').replace(/\D/g,'');
+    const foneWA = foneClean.startsWith('55') ? foneClean : '55'+foneClean;
+    const msgWA = encodeURIComponent(
+      'Olá '+c.nome.split(' ')[0]+'! A '+lojaNome+' sente sua falta! 😊\n'+
+      'Temos uma oferta especial para você hoje. Que tal fazer um pedido? 🍔'
+    );
+    const waUrl = foneClean.length >= 8 ? 'https://wa.me/'+foneWA+'?text='+msgWA : null;
+
+    const card = document.createElement('div');
+    card.className = 'adm-row fade-in';
+    card.style.cssText = 'flex-direction:column;gap:8px;margin-bottom:10px';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nome}</div>
+          <div style="font-size:10px;color:#888;font-weight:700;margin-top:2px">${c.fone ? '📞 '+c.fone : '<span style="opacity:.4">Sem telefone</span>'}</div>
+          <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">
+            <span style="font-size:10px;font-weight:700;color:#555">🛍️ ${c.totalPedidos||1} pedido${(c.totalPedidos||1)!==1?'s':''}</span>
+            <span style="font-size:10px;font-weight:700;color:var(--green)">💰 R$ ${(c.totalGasto||0).toFixed(2)}</span>
+          </div>
+        </div>
+        <span class="pill ${isInativo?'pill-red':'pill-green'}" style="flex-shrink:0">
+          ${isInativo?'⏰ '+diasDesde+'d':'✅ '+diasDesde+'d'}
+        </span>
+      </div>
+      ${waUrl
+        ? `<a href="${waUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;padding:9px;border-radius:10px;font-weight:900;font-size:12px;text-decoration:none;border:2px solid #14532d">💬 Enviar Mensagem WhatsApp</a>`
+        : `<div style="font-size:10px;font-weight:700;color:#e62222;text-align:center;padding:8px;background:#fee2e2;border-radius:8px">Sem número de WhatsApp cadastrado</div>`
+      }`;
+    listEl.appendChild(card);
   });
 }
 
@@ -2432,24 +2756,53 @@ function loadRecuperacaoClientes(){
 // ══════════════════════════════════════════════════════════
 function saveMPConfigLoja(){
   if(!curLoja) return;
-  if(!temPermissao('pix_integrado')){ alert('Disponível apenas nos planos Ouro e Black.'); return; }
-  const token = document.getElementById('cf-mp-token-loja')?.value.trim();
-  const pixKey = document.getElementById('cf-mp-pix-key-loja')?.value.trim();
-  if(!token){ alert('Informe o Access Token do Mercado Pago!'); return; }
-  db.ref('stores/'+curLoja).update({ mp_access_token: token, mp_pix_key: pixKey||'' })
-    .then(()=>{
-      const btn = document.querySelector('#mc-pix-config .btn-black');
-      if(btn){ btn.innerText='Salvo!'; setTimeout(()=>btn.innerText='Salvar configuração Pix',2000); }
-    });
+  if(!temPermissao('pix_integrado')){ alert('Disponível apenas no plano Black.'); return; }
+
+  const rawToken = document.getElementById('cf-mp-token-loja')?.value||'';
+  const rawPixKey = document.getElementById('cf-mp-pix-key-loja')?.value||'';
+
+  // Limpa token: remove espaços, tabs, quebras de linha acidentais
+  const token = rawToken.replace(/[\s\r\n]+/g,'').trim();
+  const pixKey = rawPixKey.trim();
+
+  if(!token){
+    alert('Informe o Access Token do Mercado Pago!');
+    return;
+  }
+  // Valida formato básico do token MP
+  if(!token.startsWith('APP_USR-') && !token.startsWith('TEST-')){
+    const ok=confirm('⚠️ O token não parece ser um Access Token válido do Mercado Pago.\n\nTokens válidos começam com "APP_USR-" (produção) ou "TEST-" (sandbox).\n\nDeseja salvar mesmo assim?');
+    if(!ok)return;
+  }
+
+  // Salva nos dois campos para garantir compatibilidade
+  db.ref('stores/'+curLoja).update({
+    mp_access_token: token,
+    access_token: token,       // alias para compatibilidade
+    mp_pix_key: pixKey
+  }).then(()=>{
+    console.log('[WG] Token MP salvo. Tamanho:', token.length, '| Início:', token.substring(0,12)+'...');
+    const btn = document.querySelector('#mc-pix-config .btn-black');
+    if(btn){ btn.innerText='✅ Salvo!'; setTimeout(()=>btn.innerText='💾 Salvar configuração Pix',2000); }
+    // Atualiza o input com o token limpo
+    const inp=document.getElementById('cf-mp-token-loja');
+    if(inp) inp.value=token;
+  }).catch(err=>{
+    alert('Erro ao salvar: '+err.message);
+  });
 }
 function loadMPConfigLoja(){
   if(!curLoja) return;
   db.ref('stores/'+curLoja).once('value', snap=>{
     const d = snap.val()||{};
+    const rawToken = d.mp_access_token || d.access_token || '';
+    const token = rawToken.replace(/[\s\r\n]+/g,'').trim();
+    const pixKey = (d.mp_pix_key||'').trim();
     const t = document.getElementById('cf-mp-token-loja');
     const k = document.getElementById('cf-mp-pix-key-loja');
-    if(t && d.mp_access_token) t.value = d.mp_access_token;
-    if(k && d.mp_pix_key) k.value = d.mp_pix_key;
+    if(t) t.value = token;
+    if(k) k.value = pixKey;
+    console.log('[WG] loadMPConfigLoja — token:', token ? token.substring(0,16)+'... ('+token.length+' chars)' : 'VAZIO');
   });
 }
 
@@ -2787,6 +3140,82 @@ function renderLicBanner(d){
     </div>`;
   }
 }
+
+// ─── CARD "MEU PLANO" NA ABA CONFIG ──────────────────────
+function renderMeuPlanoConfig(){
+  if(!curLoja) return;
+  db.ref('stores/'+curLoja).once('value', snap=>{
+    const d = snap.val()||{};
+    const plano = d.plano_ativo || 'bronze';
+    const lic   = getLic(d);
+    const venc  = d.licenseExpiry ? new Date(d.licenseExpiry).toLocaleDateString('pt-BR') : '—';
+
+    // Badge do plano
+    const badgeEl = document.getElementById('mc-plano-badge-config');
+    if(badgeEl){
+      const labMap   = {bronze:'🥉 Bronze', ouro:'🥇 Ouro', black:'⬛ Black'};
+      const colorMap = {bronze:'#cd7f32',   ouro:'#ca8a04', black:'#aaa'};
+      const bgMap    = {bronze:'rgba(205,127,50,.15)', ouro:'rgba(202,138,4,.15)', black:'rgba(170,170,170,.1)'};
+      badgeEl.innerHTML=`<span style="background:${bgMap[plano]};color:${colorMap[plano]};border:1.5px solid ${colorMap[plano]};border-radius:100px;padding:5px 14px;font-size:11px;font-weight:900;letter-spacing:1px">${labMap[plano]||'Bronze'}</span>`;
+    }
+
+    // Info de vencimento
+    const infoEl = document.getElementById('mc-plano-info');
+    if(infoEl){
+      if(lic.exp){
+        infoEl.innerHTML=`<div style="background:#fee2e2;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">🔒</span><div><div style="font-weight:900;font-size:12px;color:#e62222">Licença vencida</div><div style="font-size:10px;font-weight:700;color:#991b1b">Renove para reativar o sistema</div></div></div>`;
+      } else {
+        const cor = lic.dl<=3?'#e62222': lic.dl<=7?'#ca8a04':'#16a34a';
+        const bg  = lic.dl<=3?'#fee2e2': lic.dl<=7?'#fefce8':'#f0fdf4';
+        const emoji = lic.dl<=3?'🔴': lic.dl<=7?'🟡':'🟢';
+        infoEl.innerHTML=`
+          <div style="background:${bg};border-radius:10px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:11px;font-weight:700;color:${cor}">${emoji} Licença ativa</div>
+              <div style="font-size:11px;font-weight:900;color:${cor}">${lic.dl} dia${lic.dl!==1?'s':''} restante${lic.dl!==1?'s':''}</div>
+            </div>
+            <div style="font-size:10px;font-weight:700;color:#888;margin-top:4px">Vence em ${venc}</div>
+            ${lic.dl<=7?`<div style="height:6px;background:rgba(0,0,0,.1);border-radius:99px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${Math.round((lic.dl/30)*100)}%;background:${cor};border-radius:99px"></div></div>`:''}
+          </div>`;
+      }
+    }
+
+    // Resumo das features do plano atual
+    const featEl = document.getElementById('mc-plano-features-resumo');
+    if(featEl){
+      const tudo = [
+        {label:'Cardápio + pedidos delivery',   planos:['bronze','ouro','black']},
+        {label:'Controle de mesas e garçom',     planos:['bronze','ouro','black']},
+        {label:'Caixa financeiro completo',       planos:['bronze','ouro','black']},
+        {label:'Dinheiro e Cartão',               planos:['bronze','ouro','black']},
+        {label:'Gestão de estoque avançada',      planos:['ouro','black']},
+        {label:'Filtro pagos / a receber',        planos:['ouro','black']},
+        {label:'Pix automático (QR Code MP)',     planos:['black']},
+        {label:'Recuperação de clientes',         planos:['black']},
+      ];
+      const colorMap2 = {bronze:'#cd7f32', ouro:'#ca8a04', black:'#aaa'};
+      const accentCor = colorMap2[plano]||'#cd7f32';
+      featEl.innerHTML = `
+        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#555;margin-bottom:10px">O que está incluído no seu plano</div>
+        ${tudo.map(f=>{
+          const ativo = f.planos.includes(plano);
+          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+            <span style="font-size:13px">${ativo?'✅':'🔒'}</span>
+            <span style="font-size:11px;font-weight:700;color:${ativo?'rgba(248,244,236,.85)':'rgba(248,244,236,.25)'}">${f.label}</span>
+            ${!ativo?`<span style="margin-left:auto;font-size:9px;font-weight:900;color:${colorMap2[f.planos[0]]||'#aaa'};background:rgba(255,255,255,.07);padding:2px 8px;border-radius:100px;white-space:nowrap">${f.planos[0].toUpperCase()}</span>`:''}
+          </div>`;
+        }).join('')}`;
+    }
+  });
+}
+
+// Abre o modal de planos a partir do botão na Config
+function openLicPayModalConfig(){
+  db.ref('stores/'+curLoja+'/name').once('value', snap=>{
+    openLicPayModal(snap.val()||'');
+  });
+}
+
 // ─── LICENÇA: MODAL COMPLETO (PLANO → PERÍODO → PAGAR) ──
 function openLicPayModal(nomeLoja){
   const lojaKey=curLoja;
@@ -3407,58 +3836,156 @@ function haversine(lat1,lon1,lat2,lon2){
   const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
+// Intervalo de shuffle das lojas
+let _storesShuffleInterval = null;
+let _storesData = []; // cache das lojas carregadas
+
 function loadStores(){
   db.ref('stores').on('value',snap=>{
-    const el=document.getElementById('client-list-stores');el.innerHTML='';
-    if(!snap.exists()){el.innerHTML='<p style="text-align:center;opacity:.5;font-weight:700;margin-top:40px">Nenhuma loja disponível</p>';return;}
-    let vis=0;
+    // Para o shuffle anterior se houver
+    if(_storesShuffleInterval){clearInterval(_storesShuffleInterval);_storesShuffleInterval=null;}
+
+    const el=document.getElementById('client-list-stores');
+    el.innerHTML='';
+    if(!snap.exists()){
+      el.innerHTML='<p style="text-align:center;opacity:.5;font-weight:700;margin-top:40px">Nenhuma loja disponível</p>';
+      return;
+    }
+
+    // Coleta todas as lojas válidas
+    _storesData=[];
     snap.forEach(c=>{
       const d=c.val();
       if(!getLic(d).ok)return;
-      if(d.ativo===false)return; // loja desativada pelo admin — não mostrar
-      // Filtrar por raio máximo de entrega se o cliente tem GPS
+      if(d.ativo===false)return;
       if(userGPS&&d.coords&&d.coords.lat&&d.coords.lon){
         const distKm=haversine(userGPS.lat,userGPS.lon,d.coords.lat,d.coords.lon);
         const kmMax=parseFloat(d.kmMax||20);
-        if(distKm>kmMax)return; // loja muito longe — não mostrar
+        if(distKm>kmMax)return;
       }
-      vis++;
-      const div=document.createElement('div');div.className='store-card fade-in';
-      const ini=d.name.split(' ').map(w=>w[0]||'').join('').slice(0,3).toUpperCase();
-      const imgSrc=d.storeImg||'';
-      const imgH=imgSrc?`<img src="${imgSrc}" class="store-img" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:''
-      const phH=`<div class="store-ph" style="${imgSrc?'display:none':''}"><span>${ini}</span></div>`;
-      div.innerHTML=`${imgH}${phH}
-        <div style="padding:14px">
-          <div style="font-weight:900;font-size:14px;text-transform:uppercase;margin-bottom:3px">${d.name}</div>
-          <div style="font-size:11px;opacity:.5;margin-bottom:4px">Frete a partir de R$ ${parseFloat(d.basePrice||7).toFixed(2)}${(userGPS&&d.coords&&d.coords.lat)?` · 📍 ${haversine(userGPS.lat,userGPS.lon,d.coords.lat,d.coords.lon).toFixed(1)}km`:''}</div>
-          <div id="stars-${c.key}" style="font-size:12px;margin-bottom:6px;font-weight:700;color:#ca8a04;cursor:pointer" onclick="openPubReviewsById('${c.key}')"></div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-black" style="flex:1" onclick="openClientMenu('${c.key}')">Ver Cardápio →</button>
-            <button id="btn-revs-${c.key}" class="hidden" style="border:2px solid #ca8a04;background:#fffbeb;color:#b45309;font-weight:900;font-size:11px;border-radius:10px;padding:0 10px;cursor:pointer;white-space:nowrap" onclick="openPubReviewsById('${c.key}')">⭐ Ver</button>
-          </div>
-        </div>`;
-      el.appendChild(div);
-      // Load avg rating
-      (lid=>{db.ref('reviews/'+lid).once('value',rs=>{
-        const el2=document.getElementById('stars-'+lid);if(!el2)return;
-        let sum=0,cnt=0;rs.forEach(r=>{sum+=r.val().rating||0;cnt++;});
-        if(cnt){
-          const avg=(sum/cnt).toFixed(1);
-          el2.innerHTML='⭐ '+avg+' <span style="opacity:.5;font-size:10px">('+cnt+' avaliações)</span>';
-          const btn=document.getElementById('btn-revs-'+lid);
-          if(btn) btn.classList.remove('hidden');
-        } else {
-          el2.innerHTML='<span style="opacity:.4;font-size:10px">Sem avaliações ainda</span>';
-        }
-      });})(c.key);
+      _storesData.push({key:c.key, data:d});
     });
-    if(!vis)el.innerHTML='<p style="text-align:center;opacity:.5;font-weight:700;margin-top:40px">Nenhuma loja disponível</p>';
+
+    if(!_storesData.length){
+      el.innerHTML='<p style="text-align:center;opacity:.5;font-weight:700;margin-top:40px">Nenhuma loja disponível</p>';
+      return;
+    }
+
+    // Embaralha na primeira vez
+    _storesData = _shuffleArray(_storesData);
+    _renderStores(_storesData);
+
+    // Só anima se tiver mais de 1 loja
+    if(_storesData.length > 1){
+      _storesShuffleInterval = setInterval(()=>{
+        _storesData = _shuffleArray(_storesData);
+        _animateStoresShuffle(_storesData);
+      }, 120000); // 2 minutos
+    }
   });
+}
+
+function _shuffleArray(arr){
+  // Fisher-Yates shuffle — garante posição diferente da atual
+  const a = [...arr];
+  for(let i=a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function _buildStoreCard(key, d){
+  const div = document.createElement('div');
+  div.className = 'store-card';
+  div.id = 'store-card-'+key;
+  div.style.transition = 'transform .4s ease, opacity .4s ease';
+  const ini = d.name.split(' ').map(w=>w[0]||'').join('').slice(0,3).toUpperCase();
+  const imgSrc = d.storeImg||'';
+  const imgH = imgSrc ? `<img src="${imgSrc}" class="store-img" onerror="this.style.display='none';this.nextSibling.style.display='flex'">` : '';
+  const phH = `<div class="store-ph" style="${imgSrc?'display:none':''}"><span>${ini}</span></div>`;
+  const distStr = (userGPS&&d.coords&&d.coords.lat)
+    ? ` · 📍 ${haversine(userGPS.lat,userGPS.lon,d.coords.lat,d.coords.lon).toFixed(1)}km` : '';
+  div.innerHTML = `${imgH}${phH}
+    <div style="padding:14px">
+      <div style="font-weight:900;font-size:14px;text-transform:uppercase;margin-bottom:3px">${d.name}</div>
+      <div style="font-size:11px;opacity:.5;margin-bottom:4px">Frete a partir de R$ ${parseFloat(d.basePrice||7).toFixed(2)}${distStr}</div>
+      <div id="stars-${key}" style="font-size:12px;margin-bottom:6px;font-weight:700;color:#ca8a04;cursor:pointer" onclick="openPubReviewsById('${key}')"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-black" style="flex:1" onclick="openClientMenu('${key}')">Ver Cardápio →</button>
+        <button id="btn-revs-${key}" class="hidden" style="border:2px solid #ca8a04;background:#fffbeb;color:#b45309;font-weight:900;font-size:11px;border-radius:10px;padding:0 10px;cursor:pointer;white-space:nowrap" onclick="openPubReviewsById('${key}')">⭐ Ver</button>
+      </div>
+    </div>`;
+  // Carrega rating
+  db.ref('reviews/'+key).once('value',rs=>{
+    const el2=document.getElementById('stars-'+key);if(!el2)return;
+    let sum=0,cnt=0;rs.forEach(r=>{sum+=r.val().rating||0;cnt++;});
+    if(cnt){
+      const avg=(sum/cnt).toFixed(1);
+      el2.innerHTML='⭐ '+avg+' <span style="opacity:.5;font-size:10px">('+cnt+' avaliações)</span>';
+      const btn=document.getElementById('btn-revs-'+key);
+      if(btn)btn.classList.remove('hidden');
+    } else {
+      el2.innerHTML='<span style="opacity:.4;font-size:10px">Sem avaliações ainda</span>';
+    }
+  });
+  return div;
+}
+
+function _renderStores(lista){
+  const el = document.getElementById('client-list-stores');
+  el.innerHTML = '';
+  lista.forEach(({key, data})=>{
+    const card = _buildStoreCard(key, data);
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(10px)';
+    el.appendChild(card);
+    // Fade-in escalonado
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 60 * el.children.length);
+    });
+  });
+}
+
+function _animateStoresShuffle(novaOrdem){
+  const el = document.getElementById('client-list-stores');
+  if(!el) return;
+
+  // Fade out suave
+  Array.from(el.children).forEach(c=>{
+    c.style.transition = 'opacity .35s ease, transform .35s ease';
+    c.style.opacity = '0';
+    c.style.transform = 'scale(0.97)';
+  });
+
+  // Após fade out, reordena e fade in
+  setTimeout(()=>{
+    el.innerHTML = '';
+    novaOrdem.forEach(({key, data}, i)=>{
+      const card = _buildStoreCard(key, data);
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(12px)';
+      el.appendChild(card);
+      // Fade in escalonado para cada loja
+      setTimeout(()=>{
+        card.style.transition = 'opacity .4s ease, transform .4s ease';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, i * 100);
+    });
+  }, 380);
 }
 
 // ─── CHECKOUT PAYMENT ────────────────────────────────────
 let _clientPayMethod='pix';
+let _pixIntegradoToken=null;
+let _pixKeyLoja=null;
+let _pixPaymentId=null;
+let _pixPedidoId=null;
+let _pixCheckInterval=null;
 function applyRetornoFee(){
   if(!storeData)return;
   const ret=storeData.retorno||{};
@@ -3477,9 +4004,411 @@ function selectClientPay(method){
     const btn=document.getElementById('co-pay-'+m);if(!btn)return;
     if(m===method){btn.style.borderColor=s[m][0];btn.style.background=s[m][1];btn.style.color=s[m][0];}
     else{btn.style.borderColor='#e2e8f0';btn.style.background='#f8fafc';btn.style.color='#555';}
+    const aviso=document.getElementById('co-pay-aviso-'+m);
+    if(aviso) aviso.classList.toggle('hidden', m!==method);
   });
   const tr=document.getElementById('co-troco-row');if(tr)tr.classList.toggle('hidden',method!=='dinheiro');
   applyRetornoFee();
+
+  const btnConf=document.getElementById('btn-confirmar-pedido');
+
+  if(method==='pix'){
+    // Lê o nó completo da loja para pegar o token MP
+    db.ref('stores/'+curLoja).once('value', snap=>{
+      const lojaData=snap.val()||{};
+
+      // Tenta os dois campos (compatibilidade com versões anteriores)
+      const rawToken = lojaData.mp_access_token || lojaData.access_token || '';
+      const token = rawToken.replace(/[\s\r\n]+/g,'').trim();
+      const pixKey = (lojaData.mp_pix_key||'').trim();
+
+      // ── DIAGNÓSTICO — remover após confirmar funcionamento ──
+      console.log('[WG-PIX] Loja:', curLoja);
+      console.log('[WG-PIX] Token encontrado:', token ? token.substring(0,16)+'...' : 'VAZIO/NULL');
+      console.log('[WG-PIX] Tamanho do token:', token.length);
+      console.log('[WG-PIX] Começa com APP_USR?', token.startsWith('APP_USR-'));
+      console.log('[WG-PIX] Começa com TEST?', token.startsWith('TEST-'));
+      // ────────────────────────────────────────────────────────
+
+      if(token && token.length > 10){
+        _pixIntegradoToken=token;
+        _pixKeyLoja=pixKey;
+        renderPixQRCheckout();
+        if(btnConf){
+          btnConf.disabled=true;
+          btnConf.style.opacity='0.45';
+          btnConf.innerText='⏳ Aguardando pagamento Pix...';
+        }
+      } else {
+        // Sem token — modo comprovante WhatsApp
+        _pixIntegradoToken=null;
+        _pixKeyLoja=null;
+        console.log('[WG-PIX] Sem token configurado — modo comprovante WhatsApp');
+        document.getElementById('co-pix-inner').innerHTML=`
+          <div style="background:#f0fdf4;border:2px solid var(--green);border-radius:12px;padding:12px">
+            <div style="font-weight:900;font-size:12px;color:var(--green);margin-bottom:4px">📱 Pix — Envie o comprovante no WhatsApp</div>
+            <div style="font-size:11px;font-weight:700;color:#166534;line-height:1.6">Após confirmar o pedido, envie o comprovante Pix pelo WhatsApp da loja. O lojista confirma antes de iniciar o preparo.</div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+              <input type="checkbox" id="co-pix-comprovante" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer" onchange="togglePixConfirm(this)">
+              <label for="co-pix-comprovante" style="font-size:11px;font-weight:900;color:var(--green);cursor:pointer">Entendido — enviarei o comprovante</label>
+            </div>
+          </div>`;
+        // Bloqueia botão até marcar checkbox
+        if(btnConf){
+          btnConf.disabled=true;
+          btnConf.style.opacity='0.45';
+          btnConf.innerText='✅ Confirmar Pedido';
+        }
+      }
+    });
+  } else {
+    // Dinheiro ou Cartão
+    _pixIntegradoToken=null;
+    if(btnConf){
+      if(userGPS){
+        // GPS já obtido → habilita direto
+        btnConf.disabled=false;
+        btnConf.style.opacity='1';
+        btnConf.style.cursor='pointer';
+        btnConf.innerText='✅ Confirmar Pedido';
+      } else {
+        // Sem GPS ainda → mantém bloqueado aguardando GPS
+        btnConf.disabled=true;
+        btnConf.style.opacity='0.45';
+        btnConf.innerText='📡 Localize pelo GPS para confirmar';
+      }
+    }
+  }
+}
+
+// Chamado pelo checkbox de comprovante (modo sem MP integrado)
+function togglePixConfirm(chk){
+  const btnConf=document.getElementById('btn-confirmar-pedido');
+  if(!btnConf)return;
+  if(_clientPayMethod==='pix' && !_pixIntegradoToken){
+    // Só habilita se GPS também já foi obtido
+    const ok = chk.checked && !!userGPS;
+    btnConf.disabled=!ok;
+    btnConf.style.opacity=ok?'1':'0.45';
+    btnConf.innerText=ok?'✅ Confirmar Pedido':(chk.checked?'📡 Localize pelo GPS para confirmar':'✅ Confirmar Pedido');
+  }
+}
+
+// Renderiza QR Code Pix integrado no checkout
+async function renderPixQRCheckout(){
+  const inner=document.getElementById('co-pix-inner');
+  if(!inner)return;
+
+  // Calcula total — prioriza co-vt (com frete), fallback para cartTotal
+  const totalEl=document.getElementById('co-vt');
+  const totalStr=(totalEl?totalEl.innerText:'').replace('R$','').replace(',','.').trim();
+  const total=parseFloat(totalStr)||cartTotal;
+
+  const btnConf=document.getElementById('btn-confirmar-pedido');
+
+  if(total<=0 || !userGPS){
+    inner.innerHTML=`<div style="background:#fff3cd;border:2px solid #ca8a04;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:22px;margin-bottom:6px">📍</div>
+      <div style="font-weight:900;font-size:13px;color:#92400e;margin-bottom:4px">Use o GPS primeiro!</div>
+      <div style="font-size:11px;font-weight:700;color:#92400e;line-height:1.6">Toque em "Localizar pelo GPS" para calcular o frete.<br>O QR Code Pix será gerado com o valor total correto.</div>
+    </div>`;
+    if(btnConf){btnConf.disabled=true;btnConf.style.opacity='0.45';btnConf.innerText='📡 Use o GPS para gerar o Pix';}
+    return;
+  }
+
+  inner.innerHTML=`<div style="background:#f0fdf4;border:2px solid var(--green);border-radius:16px;padding:16px;text-align:center">
+    <div style="font-size:13px;font-weight:900;color:var(--green);margin-bottom:4px">📱 Pagamento Pix</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);margin-bottom:12px">R$ ${total.toFixed(2).replace('.',',')}</div>
+    <div id="co-pix-qr-wrap" style="margin-bottom:12px">
+      <div style="padding:20px;color:#888;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span style="display:inline-block;width:18px;height:18px;border:3px solid var(--green);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite"></span>
+        Gerando QR Code...
+      </div>
+    </div>
+    <div id="co-pix-copy-wrap" class="hidden" style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:#888;margin-bottom:5px">Código Pix Copia e Cola:</div>
+      <div id="co-pix-code" style="font-size:9px;word-break:break-all;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px;font-family:monospace;color:#334155;max-height:56px;overflow:hidden;text-align:left"></div>
+      <button onclick="copiarPixCode()" style="margin-top:6px;background:var(--black);color:var(--gold);border:2px solid var(--black);border-radius:8px;padding:8px 14px;font-size:11px;font-weight:900;cursor:pointer;width:100%">📋 Copiar código Pix</button>
+    </div>
+    <div id="co-pix-status" style="font-size:12px;font-weight:700;color:#888;margin-top:6px">⏳ Aguardando pagamento...</div>
+    <div id="co-pix-timer" style="font-size:10px;color:#aaa;margin-top:3px"></div>
+    <button onclick="verificarPixManual()" style="margin-top:12px;width:100%;background:var(--black);color:var(--gold);border:2px solid var(--black);border-radius:10px;padding:11px;font-weight:900;font-size:12px;cursor:pointer">🔍 Verificar Pagamento</button>
+  </div>`;
+
+  try {
+    const nome=(document.getElementById('co-nome')?.value||'').trim()||'Cliente';
+    const foneCliente=(document.getElementById('co-fone')?.value||'').trim();
+    const firstName=nome.split(' ')[0]||'Cliente';
+    const lastName=nome.split(' ').slice(1).join(' ')||'WG';
+
+    // Garante que o token está limpo (sem espaços, tabs ou quebras)
+    const tokenLimpo=(_pixIntegradoToken||'').replace(/[\s\r\n]+/g,'');
+
+    // ── DIAGNÓSTICO ──────────────────────────────────────────
+    console.log('[WG-PIX] Iniciando requisição MP');
+    console.log('[WG-PIX] Token (16 chars):', tokenLimpo ? tokenLimpo.substring(0,16)+'...' : 'VAZIO');
+    console.log('[WG-PIX] Header Authorization:', 'Bearer ' + (tokenLimpo ? tokenLimpo.substring(0,12)+'...' : 'VAZIO'));
+    console.log('[WG-PIX] Total:', total);
+    console.log('[WG-PIX] Loja:', curLoja, '| Nome:', storeData?.name);
+    // ─────────────────────────────────────────────────────────
+
+    if(!tokenLimpo){
+      document.getElementById('co-pix-qr-wrap').innerHTML=`<div style="color:#e62222;font-size:11px;font-weight:700;background:#fee2e2;padding:10px;border-radius:8px">❌ Token MP não encontrado. Configure em ⚙️ Config → Pix Integrado.</div>`;
+      return;
+    }
+
+    // Email do pagador — usa fone se disponível para gerar email único válido
+    const payerEmail = foneCliente
+      ? foneCliente.replace(/\D/g,'')+'@cliente.whitegoldomni.app'
+      : 'cliente@whitegoldomni.app';
+
+    const resp=await fetch('https://api.mercadopago.com/v1/payments',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+tokenLimpo,
+        'X-Idempotency-Key':curLoja+'_ped_'+Date.now()
+      },
+      body:JSON.stringify({
+        transaction_amount: parseFloat(total.toFixed(2)),
+        description:'Pedido '+(storeData?.name||'Loja'),
+        payment_method_id:'pix',
+        payer:{
+          email: payerEmail,
+          first_name: firstName,
+          last_name: lastName
+        }
+      })
+    });
+
+    const data=await resp.json();
+    console.log('[WG-PIX] Resposta MP status:', resp.status, '| data.id:', data.id, '| message:', data.message||'OK');
+
+    if(!resp.ok || !data.id){
+      const httpStatus=resp.status;
+      const errMsg=data.message||data.cause?.[0]?.description||'Erro desconhecido';
+      const isAuth=httpStatus===401||httpStatus===403;
+      console.error('[WG-PIX] Erro MP HTTP',httpStatus,':',errMsg,'| Causa:', JSON.stringify(data.cause||[]));
+      document.getElementById('co-pix-qr-wrap').innerHTML=`
+        <div style="color:#e62222;font-size:11px;font-weight:700;background:#fee2e2;padding:12px;border-radius:8px;text-align:left">
+          <div style="font-size:13px;margin-bottom:4px">❌ Erro ao gerar Pix (HTTP ${httpStatus})</div>
+          <div style="opacity:.8;margin-bottom:6px">${errMsg}</div>
+          ${isAuth?`<div style="background:#7f1d1d;color:#fca5a5;padding:8px;border-radius:6px;font-size:10px;line-height:1.6">
+            🔑 <strong>Token inválido (401)</strong>. Verifique:<br>
+            1. O token copiado está completo (começa com APP_USR-)<br>
+            2. Não tem espaços extras no início/fim<br>
+            3. É o token de <strong>produção</strong> (não sandbox)<br>
+            Configure em ⚙️ Config → 📱 Pix Integrado
+          </div>`:''}
+        </div>`;
+      if(btnConf){btnConf.disabled=true;btnConf.style.opacity='0.45';btnConf.innerText='❌ Erro — verifique Config';}
+      return;
+    }
+
+    _pixPaymentId=data.id;
+    const td=data.point_of_interaction?.transaction_data||{};
+    const qrBase64=td.qr_code_base64||'';
+    const qrCode=td.qr_code||'';
+    window._pixQRCode=qrCode;
+
+    // Exibe QR Code imagem
+    const qrWrap=document.getElementById('co-pix-qr-wrap');
+    if(qrWrap){
+      qrWrap.innerHTML=qrBase64
+        ?`<img src="data:image/png;base64,${qrBase64}" style="width:190px;height:190px;border-radius:12px;border:3px solid var(--green);display:block;margin:0 auto">`
+        :`<div style="font-size:11px;font-weight:700;color:#888;padding:10px">Use o código abaixo para pagar ↓</div>`;
+    }
+
+    // Exibe código copia-e-cola
+    if(qrCode){
+      const copyWrap=document.getElementById('co-pix-copy-wrap');
+      const codeEl=document.getElementById('co-pix-code');
+      if(copyWrap)copyWrap.classList.remove('hidden');
+      if(codeEl)codeEl.innerText=qrCode;
+    }
+
+    // Salvar pedido no Firebase com status aguardando_pagamento (invisível para lojista)
+    salvarPedidoPixPendente(data.id).then(ref=>{
+      _pixPedidoId=ref.key;
+    });
+
+    // Polling de confirmação a cada 4s + botão manual "Verificar"
+    let expSecs=600;
+    if(_pixCheckInterval)clearInterval(_pixCheckInterval);
+    _pixCheckInterval=setInterval(()=>{
+      expSecs-=4;
+      const timerEl=document.getElementById('co-pix-timer');
+      if(timerEl){
+        timerEl.innerText=expSecs>0
+          ?`⏰ Expira em ${Math.floor(expSecs/60)}:${String(expSecs%60).padStart(2,'0')}`
+          :'⏰ Expirado — selecione Pix novamente';
+      }
+      if(expSecs<=0){
+        clearInterval(_pixCheckInterval);_pixCheckInterval=null;
+        const statusEl=document.getElementById('co-pix-status');
+        if(statusEl){statusEl.style.color='#ca8a04';statusEl.innerText='Pix expirado. Selecione Pix novamente para gerar um novo.';}
+        return;
+      }
+      verificarPixCheckout(data.id);
+    },4000);
+
+  } catch(e) {
+    const qrWrap=document.getElementById('co-pix-qr-wrap');
+    if(qrWrap)qrWrap.innerHTML=`<div style="color:#e62222;font-size:11px;font-weight:700;background:#fee2e2;padding:10px;border-radius:8px">❌ Falha de conexão. Verifique o Access Token MP nas configurações.</div>`;
+    if(btnConf){btnConf.disabled=true;btnConf.style.opacity='0.45';btnConf.innerText='❌ Erro de conexão';}
+    console.error('renderPixQRCheckout error:',e);
+  }
+}
+
+async function verificarPixCheckout(paymentId){
+  if(!_pixIntegradoToken||!paymentId)return;
+  const tokenLimpo=(_pixIntegradoToken||'').replace(/[\s\r\n]+/g,'');
+  try{
+    const r=await fetch('https://api.mercadopago.com/v1/payments/'+paymentId,{
+      headers:{
+        'Authorization':'Bearer '+tokenLimpo,
+        'Content-Type':'application/json'
+      }
+    });
+    if(!r.ok){ console.warn('[WG-PIX] Verificação status HTTP:',r.status); return; }
+    const p=await r.json();
+    console.log('[WG-PIX] Status pagamento:',p.status,'| id:',paymentId);
+
+    if(p.status==='approved'){
+      if(_pixCheckInterval){clearInterval(_pixCheckInterval);_pixCheckInterval=null;}
+
+      // Feedback visual
+      const statusEl=document.getElementById('co-pix-status');
+      const timerEl=document.getElementById('co-pix-timer');
+      const qrWrap=document.getElementById('co-pix-qr-wrap');
+      if(statusEl){statusEl.style.color='var(--green)';statusEl.style.fontSize='15px';statusEl.style.fontWeight='900';statusEl.innerText='✅ Pix confirmado! Enviando pedido...';}
+      if(timerEl)timerEl.innerText='';
+      if(qrWrap)qrWrap.innerHTML=`<div style="font-size:56px;margin:8px 0;animation:pop .4s ease">✅</div>`;
+
+      // Ocultar botão de verificar
+      const verBtn=document.querySelector('[onclick="verificarPixManual()"]');
+      if(verBtn)verBtn.style.display='none';
+
+      // Se o pedido pendente já foi salvo, aprovar — senão aguarda 1s e tenta
+      setTimeout(()=>{
+        if(_pixPedidoId){
+          aprovarPedidoPixPago(_pixPedidoId, paymentId);
+        } else {
+          // Pedido ainda sendo salvo — aguarda mais 2s
+          setTimeout(()=>{
+            if(_pixPedidoId) aprovarPedidoPixPago(_pixPedidoId, paymentId);
+          },2000);
+        }
+      },1000);
+
+    } else if(p.status==='cancelled'||p.status==='rejected'){
+      if(_pixCheckInterval){clearInterval(_pixCheckInterval);_pixCheckInterval=null;}
+      const statusEl=document.getElementById('co-pix-status');
+      if(statusEl){statusEl.style.color='#e62222';statusEl.innerText='❌ Pagamento '+p.status+'. Selecione Pix novamente para tentar.';}
+    }
+  }catch(e){console.warn('verificarPixCheckout:',e);}
+}
+
+// Verificação manual ao clicar no botão "Verificar Pagamento"
+async function verificarPixManual(){
+  if(!_pixPaymentId||!_pixIntegradoToken)return;
+  const btn=document.querySelector('[onclick="verificarPixManual()"]');
+  if(btn){btn.innerText='⏳ Verificando...';btn.disabled=true;}
+  await verificarPixCheckout(_pixPaymentId);
+  setTimeout(()=>{
+    if(btn&&!btn.style.display){btn.innerText='🔍 Verificar Pagamento';btn.disabled=false;}
+  },3000);
+}
+
+function copiarPixCode(){
+  const code=window._pixQRCode||document.getElementById('co-pix-code')?.innerText||'';
+  if(!code)return;
+  navigator.clipboard.writeText(code).then(()=>{
+    const btn=event.target;btn.innerText='✅ Copiado!';
+    setTimeout(()=>btn.innerText='📋 Copiar código Pix',2000);
+  }).catch(()=>{
+    // Fallback
+    const ta=document.createElement('textarea');ta.value=code;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn=event.target;btn.innerText='✅ Copiado!';
+    setTimeout(()=>btn.innerText='📋 Copiar código Pix',2000);
+  });
+}
+
+// Chamado quando pagamento Pix é confirmado automaticamente
+// ─── SALVAR PEDIDO PIX (aguardando_pagamento) ───────────
+// Chamado logo após gerar o QR — salva no Firebase mas INVISÍVEL para o lojista
+function salvarPedidoPixPendente(paymentId){
+  const nome=(document.getElementById('co-nome')?.value||'').trim();
+  const fone=(document.getElementById('co-fone')?.value||'').trim();
+  const addr=(document.getElementById('co-addr')?.value||'').trim();
+  const totalStr=(document.getElementById('co-vt')?.innerText||'').replace('R$','').replace(',','.').trim();
+  const frete=parseFloat((document.getElementById('co-vf')?.innerText||'').replace(/[^0-9.]/g,''))||0;
+  const ret=storeData?.retorno||{};
+  const retornoCobrado=_clientPayMethod!=='pix'&&ret[_clientPayMethod]&&ret.valor>0?parseFloat(ret.valor):0;
+  const totalNum=parseFloat(totalStr)||cartTotal;
+  const endFinal=addr||(userGPS?'GPS: '+userGPS.lat.toFixed(4)+','+userGPS.lon.toFixed(4):'');
+  const now=new Date();
+
+  if(clientUser){
+    if(endFinal) db.ref('clients/'+clientUser.key+'/lastAddr').set(endFinal);
+    if(fone) db.ref('clients/'+clientUser.key+'/fone').set(fone);
+  }
+
+  // Decrementa estoque já (reserva o item)
+  Object.values(cart).forEach(i=>{
+    db.ref('products/'+curLoja).orderByChild('name').equalTo(i.name).once('value',snap=>{
+      snap.forEach(p=>{
+        const d=p.val();
+        if(d.stock>0){
+          const ns=Math.max(0,d.stock-i.qty);
+          db.ref('products/'+curLoja+'/'+p.key).update({stock:ns,available:ns>0});
+        }
+      });
+    });
+  });
+
+  return db.ref('orders/'+curLoja).push({
+    tipo:'delivery',cliente:nome,fone,endereco:endFinal,
+    itens:Object.values(cart),
+    total:totalNum,frete,
+    pagamento:'pix',
+    pago:false,                          // ainda não pago
+    status:'aguardando_pagamento',       // OCULTO para o lojista
+    mpPaymentId:paymentId,
+    retorno:retornoCobrado,
+    clientKey:clientUser?.key||'',
+    hora:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    ts:now.getTime(),dia:now.toLocaleDateString('pt-BR')
+  });
+}
+
+// Chamado quando MP confirma approved — muda para 'aberto' e notifica lojista
+function aprovarPedidoPixPago(pedidoKey, paymentId){
+  if(!pedidoKey){ console.error('[WG-PIX] aprovarPedidoPixPago: pedidoKey ausente!'); return; }
+  const now=new Date();
+  console.log('[WG-PIX] Aprovando pedido:', pedidoKey, '| paymentId:', paymentId);
+  db.ref('orders/'+curLoja+'/'+pedidoKey).update({
+    status:'aberto',     // agora aparece para o lojista + dispara alarme
+    pago:true,
+    mpPaymentId:paymentId,
+    pagoEm:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    pagoDia:now.toLocaleDateString('pt-BR')
+  }).then(()=>{
+    console.log('[WG-PIX] Pedido aprovado no Firebase — lojista será notificado');
+    const nome=(document.getElementById('co-nome')?.value||'').trim();
+    const fone=(document.getElementById('co-fone')?.value||'').trim();
+    const addr=(document.getElementById('co-addr')?.value||'').trim();
+    const totalStr=(document.getElementById('co-vt')?.innerText||'');
+    const msgBase=buildWAMsg(nome,fone,addr,totalStr,userGPS,'pix','',0);
+    const msgCompleta='✅ *PAGAMENTO PIX CONFIRMADO* ✅\n\n'+msgBase;
+    window.open('https://wa.me/'+(storeData?.whatsapp||'')+'?text='+encodeURIComponent(msgCompleta),'_blank');
+    if(_pixCheckInterval){clearInterval(_pixCheckInterval);_pixCheckInterval=null;}
+    showOrderSuccess();
+  }).catch(err=>{
+    console.error('[WG-PIX] Erro ao aprovar pedido no Firebase:', err);
+  });
 }
 
 // ─── SHARED MENU RENDERER ───────────────────────────────
@@ -3499,16 +4428,17 @@ function renderMenuItems(containerId,lojaId,isWaiter){
       const imgH=imgSrc?`<img src="${imgSrc}" class="mi-img" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:''
       const phH=`<div class="mi-ph" style="${imgSrc?'display:none':''}">🍽️</div>`;
       const div=document.createElement('div');div.className='menu-item fade-in';div.id=(isWaiter?'wi':'ci')+k;
+      const safeDesc=it.desc?it.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
       div.innerHTML=`<div style="display:flex;align-items:stretch">${imgH}${phH}
         <div class="mi-body"><div style="flex:1;min-width:0">
           <div style="font-weight:900;font-size:12px;text-transform:uppercase;line-height:1.3">${it.name}</div>
-          ${it.desc?`<div style="font-size:10px;color:#666;font-weight:600;margin:3px 0;line-height:1.4">${it.desc}</div>`:''}
+          ${safeDesc?`<div style="font-size:10px;color:#666;font-weight:600;margin:3px 0;line-height:1.4">${safeDesc}</div>`:''}
           <div style="color:var(--red);font-weight:900;font-size:13px;margin-top:4px">R$ ${parseFloat(it.price).toFixed(2)}</div>
         </div>
         <div class="qctrl">
-          <button class="qbtn" onclick="${fn}('${k}','${it.name}',${it.price},-1)">−</button>
+          <button class="qbtn" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="-1" onclick="handleQtyBtn(this)">−</button>
           <span style="font-weight:900;font-size:16px;min-width:20px;text-align:center" id="${qid}">${qty}</span>
-          <button class="qbtn" style="background:var(--red);border-color:var(--rdk)" onclick="${fn}('${k}','${it.name}',${it.price},1)">+</button>
+          <button class="qbtn" style="background:var(--red);border-color:var(--rdk)" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="1" onclick="handleQtyBtn(this)">+</button>
         </div></div></div>`;
       list.appendChild(div);
     });
@@ -3531,6 +4461,114 @@ function openClientMenu(id){
     renderMenuItems('client-menu-items',id,false);
   });
 }
+
+// ─── FORMAS DE PAGAMENTO DA LOJA ─────────────────────────
+// Salva no Firebase quais métodos o lojista aceita
+function saveFormasPagamento(){
+  if(!curLoja) return;
+  const aceita = {
+    dinheiro: document.getElementById('cf-aceita-dinheiro')?.checked ?? true,
+    cartao:   document.getElementById('cf-aceita-cartao')?.checked ?? true,
+    pix:      document.getElementById('cf-aceita-pix')?.checked ?? false,
+  };
+  // Pix só pode ser ativado se for plano Black E tiver token configurado
+  if(aceita.pix){
+    const token=(storeData?.mp_access_token||storeData?.access_token||'').replace(/[\s\r\n]+/g,'');
+    const planoAtual=(storeData?.plano_ativo||_planoAtivo||'bronze').toLowerCase();
+    if(planoAtual !== 'black' || token.length <= 10){
+      const motivo = planoAtual !== 'black'
+        ? '⚠️ O Pix integrado é exclusivo do plano Black.\n\nFaça upgrade para o plano Black para habilitar esta opção.'
+        : '⚠️ Configure o Access Token do Mercado Pago antes de habilitar o Pix.';
+      alert(motivo);
+      document.getElementById('cf-aceita-pix').checked = false;
+      aceita.pix = false;
+    }
+  }
+  db.ref('stores/'+curLoja+'/formas_pagamento').set(aceita).then(()=>{
+    // Atualiza storeData local
+    if(!storeData) storeData={};
+    storeData.formas_pagamento = aceita;
+  });
+}
+
+// Carrega formas de pagamento do Firebase para o formulário Config
+function loadFormasPagamento(){
+  if(!curLoja) return;
+  db.ref('stores/'+curLoja+'/formas_pagamento').once('value', snap=>{
+    const fp = snap.val() || {dinheiro:true, cartao:true, pix:false};
+    const elD = document.getElementById('cf-aceita-dinheiro');
+    const elC = document.getElementById('cf-aceita-cartao');
+    const elP = document.getElementById('cf-aceita-pix');
+    if(elD) elD.checked = fp.dinheiro !== false; // padrão true
+    if(elC) elC.checked = fp.cartao !== false;   // padrão true
+    if(elP) elP.checked = fp.pix === true;        // padrão false
+    // Pix: desabilitar checkbox se não for Black ou sem token
+    const token=(storeData?.mp_access_token||storeData?.access_token||'').replace(/[\s\r\n]+/g,'');
+    const planoAtual=(storeData?.plano_ativo||_planoAtivo||'bronze').toLowerCase();
+    const podeUsarPix = planoAtual === 'black' && token.length > 10;
+    const pixRow = document.getElementById('cf-pix-row');
+    const pixSub = document.getElementById('cf-pix-row-sub');
+    if(elP) elP.disabled = !podeUsarPix;
+    if(pixRow) pixRow.style.opacity = podeUsarPix ? '1' : '0.45';
+    if(pixSub) pixSub.innerText = podeUsarPix
+      ? 'Pix integrado via Mercado Pago ✅'
+      : planoAtual !== 'black'
+        ? 'Exclusivo do plano Black — faça upgrade'
+        : 'Configure o Access Token MP para ativar';
+  });
+}
+
+// Controla botões de pagamento no checkout do cliente baseado nas formas_pagamento da loja
+function ajustarBotaoPixCheckout(){
+  const fp = storeData?.formas_pagamento || {dinheiro:true, cartao:true, pix:false};
+  const token = (storeData?.mp_access_token || storeData?.access_token || '').replace(/[\s\r\n]+/g,'');
+  const planoLoja = (storeData?.plano_ativo || 'bronze').toLowerCase();
+
+  // Pix só aparece para loja BLACK com token configurado e com Pix ativado nas formas
+  const lojaTemPix      = planoLoja === 'black' && token.length > 10 && fp.pix === true;
+  const lojaTemDinheiro = fp.dinheiro !== false;
+  const lojaTemCartao   = fp.cartao   !== false;
+
+  // Mostra/oculta cada botão
+  const btnPix = document.getElementById('co-pay-pix');
+  const btnDin = document.getElementById('co-pay-dinheiro');
+  const btnCar = document.getElementById('co-pay-cartao');
+  if(btnPix) btnPix.style.display = lojaTemPix      ? '' : 'none';
+  if(btnDin) btnDin.style.display = lojaTemDinheiro ? '' : 'none';
+  if(btnCar) btnCar.style.display = lojaTemCartao   ? '' : 'none';
+
+  // Se a loja não aceita Pix, muda o método padrão para o primeiro disponível
+  if(!lojaTemPix && _clientPayMethod === 'pix'){
+    if(lojaTemDinheiro)     _clientPayMethod = 'dinheiro';
+    else if(lojaTemCartao)  _clientPayMethod = 'cartao';
+    else                    _clientPayMethod = 'dinheiro'; // fallback seguro
+  }
+
+  // Garante que pelo menos um método válido está selecionado
+  const metodosValidos = [];
+  if(lojaTemPix)      metodosValidos.push('pix');
+  if(lojaTemDinheiro) metodosValidos.push('dinheiro');
+  if(lojaTemCartao)   metodosValidos.push('cartao');
+  if(metodosValidos.length && !metodosValidos.includes(_clientPayMethod)){
+    _clientPayMethod = metodosValidos[0];
+  }
+
+  console.log('[WG] ajustarBotaoPixCheckout — método:', _clientPayMethod, '| pix:', lojaTemPix, '| din:', lojaTemDinheiro, '| car:', lojaTemCartao);
+}
+// Dispatcher unificado para botões de quantidade (usa data-attributes — evita problema de aspas nos nomes)
+function handleQtyBtn(btn){
+  const k=btn.dataset.k;
+  const fn=btn.dataset.fn;
+  const price=parseFloat(btn.dataset.price);
+  const max=parseInt(btn.dataset.max)||0;
+  const d=parseInt(btn.dataset.d);
+  // Recupera o nome real do produto a partir do objeto já carregado no cart ou do elemento pai
+  const nameEl=btn.closest('.menu-item')?.querySelector('[style*="text-transform:uppercase"]');
+  const name=nameEl?nameEl.innerText:(cart[k]?.name||wCart[k]?.name||'Produto');
+  if(fn==='cQty') cQty(k,name,price,d,max);
+  else if(fn==='wQty') wQty(k,name,price,d,max);
+}
+
 function cQty(k,name,price,d,maxStock){
   if(!cart[k])cart[k]={name,price:parseFloat(price),qty:0};
   const newQty=cart[k].qty+d;
@@ -3550,39 +4588,112 @@ function rcCart(){
 
 // ─── CHECKOUT ───────────────────────────────────────────
 function openCheckout(){
+  // Limpa TODA a sessão de Pix anterior
+  if(_pixCheckInterval){clearInterval(_pixCheckInterval);_pixCheckInterval=null;}
+  _pixIntegradoToken=null;
+  _pixPaymentId=null;
+  _pixPedidoId=null;
+  _pixKeyLoja=null;
+  _clientPayMethod='pix'; // reset para padrão
+
+  // Reset GPS — obriga nova localização a cada pedido (garante frete correto)
+  userGPS=null;
+  if(mapInst){mapInst.remove();mapInst=null;}
+
   const list=document.getElementById('co-items-list');list.innerHTML='';
   Object.values(cart).forEach(i=>{const d=document.createElement('div');d.className='ci';d.innerHTML=`<span>${i.qty}x ${i.name}</span><span>R$ ${(i.price*i.qty).toFixed(2)}</span>`;list.appendChild(d);});
   document.getElementById('co-subtotal').innerText='R$ '+cartTotal.toFixed(2);
-  document.getElementById('co-vt2').innerText='R$ '+cartTotal.toFixed(2);
   document.getElementById('frete-info').classList.add('hidden');
-  document.getElementById('no-gps-area').classList.remove('hidden');
   document.getElementById('map-checkout').classList.add('hidden');
   document.getElementById('gps-txt').innerText='';
-  // Pre-fill if client logged in
+
+  // Botão confirmar começa DESABILITADO — GPS obrigatório para ativar
+  const btnConf=document.getElementById('btn-confirmar-pedido');
+  if(btnConf){
+    btnConf.disabled=true;
+    btnConf.style.opacity='0.45';
+    btnConf.style.cursor='not-allowed';
+    btnConf.innerText='📡 Localize pelo GPS para confirmar';
+  }
+
+  // Reseta o bloco GPS para estado inicial
+  const gpsBloco=document.getElementById('co-gps-obrigatorio');
+  if(gpsBloco){gpsBloco.style.background='#f8fafc';gpsBloco.style.borderColor='#e2e8f0';}
+  const btnGps=document.getElementById('btn-gps');
+  if(btnGps){btnGps.innerText='📡 Localizar pelo GPS';btnGps.disabled=false;btnGps.style.background='';btnGps.style.borderColor='';}
+  const gpsTxt=document.getElementById('gps-txt');
+  if(gpsTxt)gpsTxt.innerText='';
+
+  // Reseta visual dos botões de pagamento — todos visíveis inicialmente
+  const sPay={pix:['var(--green)','#dcfce7'],dinheiro:['#b45309','#fffbeb'],cartao:['var(--blue)','#eff6ff']};
+  ['pix','dinheiro','cartao'].forEach(m=>{
+    const b=document.getElementById('co-pay-'+m);if(!b)return;
+    b.style.display='';
+    b.style.borderColor='#e2e8f0';b.style.background='#f8fafc';b.style.color='#555';
+    const aviso=document.getElementById('co-pay-aviso-'+m);
+    if(aviso) aviso.classList.add('hidden');
+  });
+
+  // Ajusta formas de pagamento conforme loja (oculta o que não aceita)
+  // ajustarBotaoPixCheckout também define _clientPayMethod correto
+  ajustarBotaoPixCheckout();
+
+  // Destaca o método padrão já definido por ajustarBotaoPixCheckout
+  const metAtual=_clientPayMethod||'dinheiro';
+  const bAtual=document.getElementById('co-pay-'+metAtual);
+  if(bAtual){
+    bAtual.style.borderColor=sPay[metAtual]?.[0]||'#e2e8f0';
+    bAtual.style.background=sPay[metAtual]?.[1]||'#f8fafc';
+    bAtual.style.color=sPay[metAtual]?.[0]||'#555';
+  }
+  const avisoAtual=document.getElementById('co-pay-aviso-'+metAtual);
+  if(avisoAtual) avisoAtual.classList.remove('hidden');
+
+  // Limpa aviso Pix e erros anteriores
+  const pixInner=document.getElementById('co-pix-inner');
+  if(pixInner)pixInner.innerHTML='';
+  const errEl=document.getElementById('co-val-err');
+  if(errEl)errEl.classList.add('hidden');
+
+  // Pre-fill se cliente logado
   if(clientUser){
     document.getElementById('co-nome').value=clientUser.nome||'';
-    // Load last address
     const key=clientUser.key;
     db.ref('clients/'+key+'/lastAddr').once('value',s=>{
       if(s.val()) document.getElementById('co-addr').value=s.val();
     });
+    db.ref('clients/'+key+'/fone').once('value',s=>{
+      const foneEl=document.getElementById('co-fone');
+      if(s.val()&&foneEl&&!foneEl.value) foneEl.value=s.val();
+    });
   }
+
   gotoView('view-checkout','nav-client');
   // Verificar horário de funcionamento
   if(curLoja) setTimeout(atualizarBotaoFinalizar, 100);
 }
 function buscarGPS(){
-  const btn=document.getElementById('btn-gps');btn.innerText='⏳ Buscando...';
+  const btn=document.getElementById('btn-gps');
+  btn.innerText='⏳ Buscando...';
+  btn.disabled=true;
   navigator.geolocation.getCurrentPosition(pos=>{
-    const lat=pos.coords.latitude,lon=pos.coords.longitude;userGPS={lat,lon};
-    document.getElementById('gps-txt').innerText='✅ GPS: '+lat.toFixed(4)+', '+lon.toFixed(4);
+    const lat=pos.coords.latitude,lon=pos.coords.longitude;
+    userGPS={lat,lon};
+    document.getElementById('gps-txt').innerText='✅ '+lat.toFixed(4)+', '+lon.toFixed(4);
     btn.innerText='✅ GPS encontrado';
-    const mEl=document.getElementById('map-checkout');mEl.classList.remove('hidden');
+    btn.disabled=false;
+    btn.style.background='var(--green)';
+    btn.style.borderColor='#14532d';
+
+    // Mapa
+    const mEl=document.getElementById('map-checkout');
+    if(mEl){mEl.classList.remove('hidden');}
     if(mapInst){mapInst.remove();mapInst=null;}
     mapInst=L.map('map-checkout').setView([lat,lon],15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInst);
     L.circleMarker([lat,lon],{color:'#e62222',radius:10,fillOpacity:.8}).addTo(mapInst).bindPopup('Você').openPopup();
-    if(storeData?.coords)L.circleMarker([storeData.coords.lat,storeData.coords.lon],{color:'#000',radius:8}).addTo(mapInst).bindPopup('Loja');
+    if(storeData?.coords) L.circleMarker([storeData.coords.lat,storeData.coords.lon],{color:'#000',radius:8}).addTo(mapInst).bindPopup('Loja');
+
     if(storeData?.coords){
       const dist=L.latLng(lat,lon).distanceTo(L.latLng(storeData.coords.lat,storeData.coords.lon))/1000;
       const vF=parseFloat(storeData.basePrice||7),kF=parseFloat(storeData.baseKm||3),vE=parseFloat(storeData.kmExtra||2);
@@ -3591,9 +4702,59 @@ function buscarGPS(){
       document.getElementById('co-vf').innerText='R$ '+frete.toFixed(2)+' ('+dist.toFixed(1)+'km)';
       document.getElementById('co-vt').innerText='R$ '+(cartTotal+frete).toFixed(2);
       document.getElementById('frete-info').classList.remove('hidden');
-      document.getElementById('no-gps-area').classList.add('hidden');
+
+      // Habilitar botão confirmar após GPS
+      const btnConf=document.getElementById('btn-confirmar-pedido');
+      if(btnConf){
+        // Só mantém bloqueado se for Pix integrado com QR já gerado (aguardando pagamento MP)
+        const pixBloqueado = _clientPayMethod==='pix' && _pixIntegradoToken && _pixPaymentId;
+        // Ou se for Pix comprovante e o checkbox ainda não foi marcado
+        const chk=document.getElementById('co-pix-comprovante');
+        const pixComprovanteBloqueado = _clientPayMethod==='pix' && !_pixIntegradoToken && chk && !chk.checked;
+
+        if(!pixBloqueado && !pixComprovanteBloqueado){
+          btnConf.disabled=false;
+          btnConf.style.opacity='1';
+          btnConf.style.cursor='pointer';
+          btnConf.innerText='✅ Confirmar Pedido';
+        }
+      }
+
+      // Ocultar bloco GPS obrigatório (já foi usado)
+      const gpsBloco=document.getElementById('co-gps-obrigatorio');
+      if(gpsBloco){
+        gpsBloco.style.background='#f0fdf4';
+        gpsBloco.style.borderColor='var(--green)';
+      }
+
+      // Se Pix integrado ativo, regerar QR com total correto
+      if(_clientPayMethod==='pix' && _pixIntegradoToken){
+        if(_pixCheckInterval){clearInterval(_pixCheckInterval);_pixCheckInterval=null;}
+        _pixPaymentId=null;_pixPedidoId=null;
+        renderPixQRCheckout();
+      }
+    } else {
+      // Loja sem coordenadas — usa total do carrinho sem frete
+      document.getElementById('co-vp').innerText='R$ '+cartTotal.toFixed(2);
+      document.getElementById('co-vf').innerText='R$ 0,00';
+      document.getElementById('co-vt').innerText='R$ '+cartTotal.toFixed(2);
+      document.getElementById('frete-info').classList.remove('hidden');
+      const btnConf2=document.getElementById('btn-confirmar-pedido');
+      if(btnConf2){
+        const pixBloqueado2=_clientPayMethod==='pix'&&_pixIntegradoToken&&_pixPaymentId;
+        const chk2=document.getElementById('co-pix-comprovante');
+        const pixComp2=_clientPayMethod==='pix'&&!_pixIntegradoToken&&chk2&&!chk2.checked;
+        if(!pixBloqueado2&&!pixComp2){
+          btnConf2.disabled=false;btnConf2.style.opacity='1';btnConf2.innerText='✅ Confirmar Pedido';
+        }
+      }
     }
-  },()=>{btn.innerText='❌ Erro — use o campo de texto';});
+  }, err=>{
+    btn.innerText='❌ Erro GPS — tente novamente';
+    btn.disabled=false;
+    console.warn('[WG] GPS error:', err.code, err.message);
+    // Não libera o pedido sem GPS
+  });
 }
 function buildWAMsg(nome,fone,addr,total,gps,payMethod,troco,retorno){
   const payLabels={pix:'📱 Pix',dinheiro:'💵 Dinheiro',cartao:'💳 Cartão/Maquininha'};
@@ -3680,13 +4841,7 @@ function atualizarBotaoFinalizar(){
     const msgEl=document.getElementById('loja-fechada-msg');
     const horEl=document.getElementById('loja-fechada-horario');
     if(!btn)return;
-    if(aberto){
-      btn.disabled=false;
-      btn.style.opacity='1';
-      btn.style.cursor='pointer';
-      btn.innerText='✅ Confirmar Pedido';
-      if(msgEl)msgEl.classList.add('hidden');
-    } else {
+    if(!aberto){
       btn.disabled=true;
       btn.style.opacity='0.4';
       btn.style.cursor='not-allowed';
@@ -3697,10 +4852,26 @@ function atualizarBotaoFinalizar(){
         const dayNames=['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
         const today=dayNames[now.getDay()];
         const dc=h.dias&&h.dias[today];
-        if(dc&&dc.aberto){
-          horEl.innerText=`Hoje: ${dc.abertura||'--'} às ${dc.fechamento||'--'}`;
-        } else {
-          horEl.innerText='Fechado hoje.';
+        if(dc&&dc.aberto){horEl.innerText=`Hoje: ${dc.abertura||'--'} às ${dc.fechamento||'--'}`;}
+        else{horEl.innerText='Fechado hoje.';}
+      }
+    } else {
+      if(msgEl)msgEl.classList.add('hidden');
+      if(!userGPS){
+        // Sem GPS ainda — botão fica bloqueado
+        btn.disabled=true;
+        btn.style.opacity='0.45';
+        btn.style.cursor='not-allowed';
+        btn.innerText='📡 Localize pelo GPS para confirmar';
+      } else {
+        // Com GPS: habilita a menos que seja Pix integrado aguardando pagamento
+        const pixIntegradoAguardando = _clientPayMethod==='pix' && _pixIntegradoToken && _pixPaymentId;
+        const pixComprovanteSemCheck = _clientPayMethod==='pix' && !_pixIntegradoToken && !document.getElementById('co-pix-comprovante')?.checked;
+        if(!pixIntegradoAguardando && !pixComprovanteSemCheck){
+          btn.disabled=false;
+          btn.style.opacity='1';
+          btn.style.cursor='pointer';
+          btn.innerText='✅ Confirmar Pedido';
         }
       }
     }
@@ -3708,58 +4879,68 @@ function atualizarBotaoFinalizar(){
 }
 
 function enviarWA(){
+  // Bloqueia SOMENTE se for Pix com integração ativa (QR gerado)
+  if(_clientPayMethod==='pix' && _pixIntegradoToken && _pixPaymentId){
+    console.log('[WG] enviarWA: bloqueado — Pix integrado ativo, pedidoId:', _pixPedidoId);
+    return;
+  }
+
   const nome=document.getElementById('co-nome').value.trim();
   const fone=document.getElementById('co-fone').value.trim();
   const addr=document.getElementById('co-addr').value.trim();
-  const temGPS=!!userGPS;
-  // Validação obrigatória — GPS é obrigatório
-  let erros=[];
-  if(!nome) erros.push('nome');
-  if(!temGPS) erros.push('gps'); // GPS obrigatório
-  if(!addr&&!temGPS) erros.push('endereco');
-  if(erros.length){
-    if(erros.includes('nome')){
-      document.getElementById('co-nome').style.borderColor='var(--red)';
-      document.getElementById('co-nome').focus();
-    }
-    if(erros.includes('gps')){
-      const errGPS=document.getElementById('co-val-err');
-      errGPS.innerText='📡 GPS obrigatório! Clique em "Localizar pelo GPS" antes de confirmar.';
-      errGPS.classList.remove('hidden');
-      document.getElementById('btn-gps').style.boxShadow='0 0 0 3px var(--red)';
-      return;
-    }
-    if(erros.includes('endereco')){
-      document.getElementById('co-addr').style.borderColor='var(--red)';
-    }
-    document.getElementById('co-val-err').classList.remove('hidden');
+  const errEl=document.getElementById('co-val-err');
+  const errMsg=document.getElementById('co-val-err-msg');
+
+  // GPS é obrigatório — sem GPS não há frete calculado
+  if(!userGPS){
+    if(errMsg) errMsg.innerText='📡 GPS obrigatório! Toque em "Localizar pelo GPS" antes de confirmar.';
+    errEl.classList.remove('hidden');
+    document.getElementById('btn-gps').style.boxShadow='0 0 0 3px var(--red)';
+    document.getElementById('btn-gps').scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
-  document.getElementById('co-val-err').classList.add('hidden');
+
+  // Nome obrigatório
+  if(!nome){
+    if(errMsg) errMsg.innerText='⚠️ Digite seu nome para confirmar o pedido.';
+    errEl.classList.remove('hidden');
+    document.getElementById('co-nome').style.borderColor='var(--red)';
+    document.getElementById('co-nome').focus();
+    return;
+  }
+
+  errEl.classList.add('hidden');
   document.getElementById('co-nome').style.borderColor='';
-  document.getElementById('co-addr').style.borderColor='';
   document.getElementById('btn-gps').style.boxShadow='';
-  const endFinal=addr||(temGPS?'(via GPS)':'');
-  const totalStr=document.getElementById('co-vt').innerText;
-  const frete=parseFloat((document.getElementById('co-vf').innerText.match(/[\d.]+/)||['0'])[0])||0;
+
+  // Lê total do elemento — que já deve estar visível após GPS
+  const vtEl=document.getElementById('co-vt');
+  const vfEl=document.getElementById('co-vf');
+  const totalStr=vtEl?vtEl.innerText:'';
+  const totalNum=parseFloat(totalStr.replace(/[^\d.,]/g,'').replace(',','.'))||cartTotal;
+  const frete=parseFloat((vfEl?vfEl.innerText:'').replace(/[^\d.,]/g,'').replace(',','.'))||0;
+  const endFinal=addr||(userGPS?'GPS: '+userGPS.lat.toFixed(5)+','+userGPS.lon.toFixed(5):'');
   const ret=storeData?.retorno||{};
-  const retornoCobrado=ret[_clientPayMethod]&&ret.valor>0?parseFloat(ret.valor):0;
-  const totalNum=parseFloat(totalStr.replace('R$ ','').replace(',','.'))||cartTotal;
+  const retornoCobrado=_clientPayMethod!=='pix'&&ret[_clientPayMethod]&&ret.valor>0?parseFloat(ret.valor):0;
   const trocoVal=_clientPayMethod==='dinheiro'?document.getElementById('co-troco')?.value||'':'';
+
+  console.log('[WG] Enviando pedido:', {nome, totalNum, frete, metodo:_clientPayMethod, gps:!!userGPS});
+
   saveDeliveryOrder(nome,fone,endFinal,totalNum,frete,retornoCobrado,(pedidoId,hora)=>{
-    const msg=buildWAMsg(nome,fone,endFinal,totalStr,userGPS,_clientPayMethod,trocoVal,retornoCobrado);
-    window.open(`https://wa.me/${storeData?.whatsapp||''}?text=${encodeURIComponent(msg)}`,'_blank');
+    const msg=buildWAMsg(nome,fone,endFinal,totalStr||'R$ '+totalNum.toFixed(2),userGPS,_clientPayMethod,trocoVal,retornoCobrado);
+    window.open('https://wa.me/'+(storeData?.whatsapp||'')+'?text='+encodeURIComponent(msg),'_blank');
     showOrderSuccess();
   });
 }
 
 function enviarWASemGPS(){
-  // GPS é obrigatório — redireciona para buscar GPS
+  // GPS é obrigatório — redireciona para o botão GPS
+  const btn=document.getElementById('btn-gps');
+  if(btn){btn.style.boxShadow='0 0 0 3px var(--red)';btn.scrollIntoView({behavior:'smooth',block:'center'});}
   const errEl=document.getElementById('co-val-err');
-  errEl.innerText='📡 Por favor, use o GPS para confirmar sua localização antes de pedir.';
-  errEl.classList.remove('hidden');
-  document.getElementById('btn-gps').style.boxShadow='0 0 0 3px var(--red)';
-  document.getElementById('btn-gps').scrollIntoView({behavior:'smooth',block:'center'});
+  const errMsg=document.getElementById('co-val-err-msg');
+  if(errMsg)errMsg.innerText='📡 GPS obrigatório! Toque em "Localizar pelo GPS" antes de confirmar.';
+  if(errEl)errEl.classList.remove('hidden');
 }
 
 // ─── GARÇOM: LOGIN ──────────────────────────────────────
