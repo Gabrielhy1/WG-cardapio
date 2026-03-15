@@ -241,7 +241,7 @@ textarea.inp{resize:vertical;min-height:65px}
   <button class="nb active" id="nav-client" onclick="clientNavClick()"><span class="ni">🛒</span><span class="nl" id="nav-client-lbl">Entrar</span></button>
   <button class="nb" id="nav-wlogin" onclick="gotoView('view-wlogin','nav-wlogin')"><span class="ni">🧑‍🍳</span><span class="nl">Garçom</span></button>
   <button class="nb" id="nav-login" onclick="gotoView('view-login','nav-login')"><span class="ni">🏪</span><span class="nl">Lojista</span></button>
-  <button class="nb" id="nav-admin-login" onclick="gotoView('view-admin-login','nav-admin-login')"><span class="ni">👑</span><span class="nl">Admin</span></button>
+  <button class="nb" id="nav-admin-login" onclick="gotoView('view-admin-login','nav-admin-login')" style="display:none"><span class="ni">👑</span><span class="nl">Admin</span></button>
 </nav>
 
 <!-- ══════════ CLIENTE — LOJAS ══════════ -->
@@ -543,7 +543,7 @@ textarea.inp{resize:vertical;min-height:65px}
   <div class="l-logo">WHITE GOLD</div>
   <div class="l-sub">Portal do Lojista</div>
   <div class="l-card">
-    <label class="lbl" style="color:#aaa">Nome da Loja</label><input class="inp inp-dark" id="l-user" placeholder="Ex: Filial Centro">
+    <label class="lbl" style="color:#aaa">Nome da Loja</label><input class="inp inp-dark" id="l-user" placeholder="Ex: Filial Centro" autocomplete="off">
     <label class="lbl" style="color:#aaa">Senha</label><input class="inp inp-dark" id="l-pass" type="password" placeholder="••••••••">
     <label class="remember-row" style="margin-top:4px"><input type="checkbox" id="l-remember" checked><span>Lembrar meu acesso</span></label>
     <button class="btn btn-gold" onclick="doLogin()">Entrar →</button>
@@ -5568,25 +5568,44 @@ function doLogin(){
     let _mr=_mWait;const _mt=setInterval(()=>{_mr--;if(_mr<=0){clearInterval(_mt);errEl.classList.add('hidden');}else errMsg.innerText=`🔒 Bloqueado. Aguarde ${_mr}s.`;},1000);
     return;
   }
-  db.ref('stores').orderByChild('name').equalTo(u).once('value',snap=>{
+  // Credencial master → qualquer nome + senha master abre o Admin
+  if(p==='wgmaster2024'){
+    _resetLoginAttempts('merchant_'+u);
+    gotoView('view-admin-login',null);
+    // Auto-preenche e submete login admin
+    setTimeout(()=>{
+      const admPass=document.getElementById('adm-pass');
+      if(admPass){admPass.value='wgmaster2024';doAdminLogin();}
+    },100);
+    return;
+  }
+  // Login normal de lojista por email cadastrado na loja
+  db.ref('stores').once('value',snap=>{
     if(!snap.exists()){
       _recordFailedLogin('merchant_'+u);
-      errMsg.innerText='Loja "'+u+'" não encontrada. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
+      errMsg.innerText='Nenhuma loja encontrada. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
       document.getElementById('l-err-btn-cadastro').style.display='';
       document.getElementById('l-err-btn-senha').style.display='none';
       errEl.classList.remove('hidden');
       return;
     }
+    let found=false;
     snap.forEach(s=>{
+      if(found)return;
       const d=s.val();
+      // Verifica email (campo email ou name) e senha
+      const emailMatch=(d.email&&d.email.toLowerCase()===u.toLowerCase())||(d.name&&d.name.toLowerCase()===u.toLowerCase());
+      if(!emailMatch)return;
       if(d.pass!==p){
         _recordFailedLogin('merchant_'+u);
         errMsg.innerText='Senha incorreta. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
         document.getElementById('l-err-btn-cadastro').style.display='none';
         document.getElementById('l-err-btn-senha').style.display='';
         errEl.classList.remove('hidden');
+        found=true;
         return;
       }
+      found=true;
       _resetLoginAttempts('merchant_'+u);
       errEl.classList.add('hidden');
       if(d.ativo===false){
@@ -5596,7 +5615,6 @@ function doLogin(){
         errEl.classList.remove('hidden');
         return;
       }
-      // Vencimento automático
       if(d.licenseExpiry && d.licenseExpiry < Date.now()){
         db.ref('stores/'+s.key).update({ativo:false});
         showBlocked(d.name);
@@ -5611,6 +5629,13 @@ function doLogin(){
       verificarPixPendente(s.key);
       carregarPlanoEAplicarPermissoes(s.key);
     });
+    if(!found){
+      _recordFailedLogin('merchant_'+u);
+      errMsg.innerText='E-mail não encontrado. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
+      document.getElementById('l-err-btn-cadastro').style.display='';
+      document.getElementById('l-err-btn-senha').style.display='none';
+      errEl.classList.remove('hidden');
+    }
   });
 }
 
