@@ -90,9 +90,21 @@ body{font-family:'DM Sans',sans-serif;background:#f2f2ed;color:var(--black);over
 
 /* ── MENU ITEM ── */
 .menu-item{background:var(--white);border:var(--border);border-radius:var(--rad);margin-bottom:10px;overflow:hidden;box-shadow:3px 3px 0 var(--black)}
-.mi-img{width:80px;height:80px;object-fit:cover;border-right:2px solid var(--black);flex-shrink:0;background:#f0f0f0}
-.mi-ph{width:80px;height:80px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;border-right:2px solid var(--black)}
-.mi-body{display:flex;align-items:center;justify-content:space-between;padding:12px;flex:1;gap:8px}
+.mi-img{width:100px;height:100px;object-fit:cover;border-radius:12px;flex-shrink:0;background:#f0f0f0}
+.mi-ph{width:100px;height:100px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;border-radius:12px}
+.mi-body{display:flex;align-items:center;justify-content:space-between;padding:12px;flex:1;gap:15px}
+/* ── MENU ITEM INNER LAYOUT (iFood style) ── */
+.mi-inner{display:flex;align-items:center;gap:15px;padding:12px}
+.mi-text{flex:1;min-width:0}
+.mi-photo{flex-shrink:0}
+/* ── COMBO ITEM ── */
+.menu-item.is-combo{border:2.5px solid var(--gold);box-shadow:4px 4px 0 var(--gold)}
+.combo-badge{display:inline-flex;align-items:center;gap:3px;background:var(--gold);color:var(--black);font-size:9px;font-weight:900;padding:2px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+/* ── ADICIONAIS MODAL ── */
+.modal-adicionais{background:var(--white);border-radius:20px 20px 0 0;border:var(--border);border-bottom:none;padding:22px;width:100%;max-width:480px;max-height:92dvh;overflow-y:auto;animation:slideUp .25s ease}
+.adicional-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1.5px dashed #eee}
+.adicional-check{width:20px;height:20px;accent-color:var(--red);cursor:pointer;flex-shrink:0}
+.adicional-locked{opacity:.5;pointer-events:none;filter:grayscale(1)}
 .qbtn{width:30px;height:30px;border-radius:8px;border:2px solid var(--black);background:var(--black);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0}
 .qctrl{display:flex;align-items:center;gap:7px;flex-shrink:0}
 
@@ -814,9 +826,33 @@ textarea.inp{resize:vertical;min-height:65px}
       <label class="lbl">Nome do item</label><input class="inp" id="cf-nome" placeholder="Ex: X-Burguer">
       <label class="lbl">Descrição</label><textarea class="inp" id="cf-desc" placeholder="Ingredientes e detalhes..."></textarea>
       <label class="lbl">Preço R$</label><input class="inp" id="cf-preco" type="number" placeholder="22.90">
+      <label class="lbl">Categoria</label>
+      <input class="inp" id="cf-categoria" placeholder="Ex: Hambúrgueres, Bebidas, 📦 Combos Especiais">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div><label class="lbl">Estoque (qtd)</label><input class="inp" id="cf-stock" type="number" placeholder="Ex: 20 (0=ilimitado)"></div>
         <div><label class="lbl">Alerta em</label><input class="inp" id="cf-stock-alert" type="number" placeholder="Ex: 3"></div>
+      </div>
+      <!-- COMBO TOGGLE -->
+      <div id="cf-combo-wrap" style="display:flex;align-items:center;justify-content:space-between;background:#fefce8;border:2px solid #ca8a04;border-radius:12px;padding:12px;margin-bottom:10px">
+        <div>
+          <div style="font-weight:900;font-size:12px">📦 Este item é um Combo?</div>
+          <div style="font-size:10px;color:#854d0e;margin-top:2px">Destaque dourado e badge ECONOMIA no cardápio</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="cf-is-combo" style="width:20px;height:20px;accent-color:#ca8a04">
+          <span style="font-size:11px;font-weight:900;color:#ca8a04">Sim</span>
+        </label>
+      </div>
+      <!-- ADICIONAIS -->
+      <div id="cf-adicionais-wrap" style="background:#f0fdf4;border:2px solid var(--green);border-radius:12px;padding:13px;margin-bottom:10px">
+        <div style="font-weight:900;font-size:12px;color:#15803d;margin-bottom:8px">➕ Adicionais deste produto</div>
+        <div style="font-size:10px;color:#166534;font-weight:700;margin-bottom:10px">Ex: Queijo Extra, Bacon, Ovo... (Ouro/Black)</div>
+        <div id="cf-adicionais-list" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <input class="inp" id="cf-add-nome" placeholder="Nome do adicional" style="flex:1;margin-bottom:0">
+          <input class="inp" id="cf-add-preco" type="number" step="0.50" placeholder="R$" style="width:80px;margin-bottom:0">
+          <button onclick="addAdicionalTemp()" style="background:var(--green);color:#fff;border:2px solid #14532d;border-radius:10px;padding:0 12px;font-weight:900;font-size:13px;cursor:pointer;flex-shrink:0">+</button>
+        </div>
       </div>
       <button class="btn btn-black" onclick="addProduct()">+ Adicionar Item</button>
       <hr class="divider">
@@ -1132,7 +1168,9 @@ const PLANO_FEATURES = {
   badge_pix:            ['ouro','black'],   // bolinha de pago/não pago
   filtro_financeiro:    ['ouro','black'],   // filtros Pagos/Não Pagos
   gestao_estoque:       ['ouro','black'],
-  recuperacao_clientes: ['black']
+  recuperacao_clientes: ['black'],
+  combos:               ['bronze','ouro','black'],   // categoria Combos Especiais
+  adicionais:           ['bronze','ouro','black'],   // sistema de adicionais por produto
 };
 
 /**
@@ -1219,6 +1257,9 @@ function aplicarTodasRestricoes(){
   // Tab "Clientes" na navbar — só aparece para Black
   const tabRecup = document.getElementById('tab-recuperacao');
   if(tabRecup) tabRecup.style.display = temRecup ? '' : 'none';
+
+  // ── Combos e Adicionais — liberados para TODOS os planos ─
+  // Nenhum bloqueio visual necessário
 
   // ── Filtros financeiros e badge Pix ──────────────────
   checkPlanPrivileges();
@@ -2979,19 +3020,48 @@ function saveMesas(){
   const garcomPay=document.getElementById('cf-garcom-pay')?.checked||false;
   db.ref('stores/'+curLoja).update({mesasCount:v,garcomCanPay:garcomPay}).then(()=>alert('✅ Configuração de mesas salva!'));
 }
+// Adicionais temporários no form de novo produto
+let _tempAdicionais=[];
+function addAdicionalTemp(){
+  const nome=document.getElementById('cf-add-nome').value.trim();
+  const preco=parseFloat(document.getElementById('cf-add-preco').value)||0;
+  if(!nome)return;
+  _tempAdicionais.push({nome,preco});
+  document.getElementById('cf-add-nome').value='';
+  document.getElementById('cf-add-preco').value='';
+  renderTempAdicionais();
+}
+function renderTempAdicionais(){
+  const list=document.getElementById('cf-adicionais-list');if(!list)return;
+  list.innerHTML=_tempAdicionais.map((a,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #d1fae5">
+      <span style="font-size:12px;font-weight:700">➕ ${a.nome}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;font-weight:900;color:var(--green)">+R$ ${a.preco.toFixed(2)}</span>
+        <button onclick="_tempAdicionais.splice(${i},1);renderTempAdicionais()" style="background:#fee2e2;border:none;border-radius:6px;color:var(--red);font-weight:900;cursor:pointer;padding:2px 8px;font-size:12px">×</button>
+      </div>
+    </div>`).join('');
+}
+
 function addProduct(){
   const n=document.getElementById('cf-nome').value.trim(),p=document.getElementById('cf-preco').value;
   const desc=document.getElementById('cf-desc').value.trim();
   const img=prodImgB64||document.getElementById('cf-img-url').value.trim();
   const stock=parseInt(document.getElementById('cf-stock')?.value)||0;
   const stockAlert=parseInt(document.getElementById('cf-stock-alert')?.value)||3;
+  const categoria=(document.getElementById('cf-categoria')?.value||'').trim()||'Cardápio';
+  const isCombo=document.getElementById('cf-is-combo')?.checked||false;
+  const adicionais=[..._tempAdicionais];
   if(!n||!p)return alert('Preencha nome e preço!');
-  db.ref('products/'+curLoja).push({name:n,price:parseFloat(p),desc,img,stock,stockAlert,available:true});
+  db.ref('products/'+curLoja).push({name:n,price:parseFloat(p),desc,img,stock,stockAlert,available:true,categoria,isCombo,adicionais});
   document.getElementById('cf-nome').value='';document.getElementById('cf-preco').value='';
   document.getElementById('cf-desc').value='';document.getElementById('cf-img-url').value='';
   const ps=document.getElementById('cf-stock');if(ps)ps.value='';
   const pa=document.getElementById('cf-stock-alert');if(pa)pa.value='';
+  const pc=document.getElementById('cf-categoria');if(pc)pc.value='';
+  const pi=document.getElementById('cf-is-combo');if(pi)pi.checked=false;
   const pw=document.getElementById('prod-img-preview-wrap');if(pw)pw.innerHTML='';prodImgB64='';
+  _tempAdicionais=[];renderTempAdicionais();
 }
 function delProd(k){if(confirm('Remover item?'))db.ref('products/'+curLoja+'/'+k).remove();}
 function toggleAvail(k,cur){db.ref('products/'+curLoja+'/'+k).update({available:!cur});}
@@ -3004,6 +3074,30 @@ function toggleEpAvail(){
   if(next){lbl.innerHTML='✅ Disponível';btn.style.borderColor='var(--green)';btn.style.background='#dcfce7';btn.style.color='var(--green)';btn.innerText='Pausar';}
   else{lbl.innerHTML='⛔ Pausado';btn.style.borderColor='var(--red)';btn.style.background='#fee2e2';btn.style.color='var(--red)';btn.innerText='Despausar';}
 }
+
+// Adicionais temporários no form de EDIÇÃO
+let _epTempAdicionais=[];
+function epAddAdicionalTemp(){
+  const nome=document.getElementById('ep-add-nome').value.trim();
+  const preco=parseFloat(document.getElementById('ep-add-preco').value)||0;
+  if(!nome)return;
+  _epTempAdicionais.push({nome,preco});
+  document.getElementById('ep-add-nome').value='';
+  document.getElementById('ep-add-preco').value='';
+  renderEpAdicionais();
+}
+function renderEpAdicionais(){
+  const list=document.getElementById('ep-adicionais-list');if(!list)return;
+  list.innerHTML=_epTempAdicionais.map((a,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #d1fae5">
+      <span style="font-size:12px;font-weight:700">➕ ${a.nome}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;font-weight:900;color:var(--green)">+R$ ${a.preco.toFixed(2)}</span>
+        <button onclick="_epTempAdicionais.splice(${i},1);renderEpAdicionais()" style="background:#fee2e2;border:none;border-radius:6px;color:var(--red);font-weight:900;cursor:pointer;padding:2px 8px;font-size:12px">×</button>
+      </div>
+    </div>`).join('');
+}
+
 function openEditProd(k){
   db.ref('products/'+curLoja+'/'+k).once('value',snap=>{
     const d=snap.val();
@@ -3014,6 +3108,10 @@ function openEditProd(k){
     document.getElementById('ep-stock').value=d.stock||'';
     document.getElementById('ep-stock-alert').value=d.stockAlert||3;
     document.getElementById('ep-img-url').value=d.img||'';
+    const catEl=document.getElementById('ep-categoria');if(catEl)catEl.value=d.categoria||'';
+    const cbEl=document.getElementById('ep-is-combo');if(cbEl)cbEl.checked=!!d.isCombo;
+    _epTempAdicionais=d.adicionais?[...d.adicionais]:[];
+    renderEpAdicionais();
     const pw=document.getElementById('ep-img-preview');
     if(pw)pw.innerHTML=d.img?`<img src="${d.img}" style="width:100%;height:100px;object-fit:cover;border-radius:8px">`:'';
     window._editProdImgB64='';
@@ -3033,9 +3131,12 @@ function saveEditProd(){
   const img=window._editProdImgB64||document.getElementById('ep-img-url').value.trim();
   const stock=parseInt(document.getElementById('ep-stock').value)||0;
   const stockAlert=parseInt(document.getElementById('ep-stock-alert').value)||3;
+  const categoria=(document.getElementById('ep-categoria')?.value||'').trim()||'Cardápio';
+  const isCombo=document.getElementById('ep-is-combo')?.checked||false;
+  const adicionais=[..._epTempAdicionais];
   if(!n||!p)return alert('Preencha nome e preço!');
   const avail=document.getElementById('ep-avail-val').value==='true';
-  const upd={name:n,price:parseFloat(p),desc,stock,stockAlert,available:avail};
+  const upd={name:n,price:parseFloat(p),desc,stock,stockAlert,available:avail,categoria,isCombo,adicionais};
   if(img)upd.img=img;
   db.ref('products/'+curLoja+'/'+k).update(upd).then(()=>{
     document.getElementById('modal-edit-prod').classList.add('hidden');
@@ -3048,6 +3149,62 @@ function previewEditProdImg(input){
   r.onload=e=>{window._editProdImgB64=e.target.result;document.getElementById('ep-img-preview').innerHTML=`<img src="${e.target.result}" style="width:100%;height:100px;object-fit:cover;border-radius:8px">`;};
   r.readAsDataURL(file);
 }
+
+// ─── MODAL DE ADICIONAIS (CLIENTE) ──────────────────────
+let _adicionaisCtx={k:'',name:'',basePrice:0,adicionais:[],selected:{}};
+function openAdicionaisModal(k,name,basePrice,adicionaisJSON){
+  // Todos os planos têm acesso a adicionais
+  _adicionaisCtx={k,name,basePrice,adicionais:adicionaisJSON||[],selected:{}};
+  const modal=document.getElementById('modal-adicionais');
+  const lockDiv=document.getElementById('madicionais-locked');
+  const listDiv=document.getElementById('madicionais-list');
+  document.getElementById('madicionais-title').innerText='➕ '+name;
+  lockDiv.classList.add('hidden'); // nunca bloqueia — todos os planos liberados
+  listDiv.innerHTML='';
+  (adicionaisJSON||[]).forEach((a,i)=>{
+    const row=document.createElement('div');
+    row.className='adicional-row';
+    row.innerHTML=`
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1">
+        <input type="checkbox" class="adicional-check" data-i="${i}" data-preco="${a.preco||0}" onchange="_calcAdicionaisTotal()">
+        <span style="font-size:13px;font-weight:700">${a.nome}</span>
+      </label>
+      <span style="font-weight:900;font-size:13px;color:var(--green)">+R$ ${parseFloat(a.preco||0).toFixed(2)}</span>`;
+    listDiv.appendChild(row);
+  });
+  _calcAdicionaisTotal();
+  modal.classList.remove('hidden');
+}
+function _calcAdicionaisTotal(){
+  const checks=document.querySelectorAll('#madicionais-list .adicional-check');
+  let extra=0;
+  checks.forEach(c=>{if(c.checked)extra+=parseFloat(c.dataset.preco)||0;});
+  const total=_adicionaisCtx.basePrice+extra;
+  document.getElementById('madicionais-total').innerText='R$ '+total.toFixed(2);
+}
+function closeAdicionaisModal(){document.getElementById('modal-adicionais').classList.add('hidden');}
+function confirmAdicionais(){
+  const checks=document.querySelectorAll('#madicionais-list .adicional-check');
+  const selecionados=[];let extra=0;
+  checks.forEach(c=>{
+    if(c.checked){
+      const a=_adicionaisCtx.adicionais[parseInt(c.dataset.i)];
+      selecionados.push(a);
+      extra+=parseFloat(c.dataset.preco)||0;
+    }
+  });
+  const k=_adicionaisCtx.k;
+  const totalUnit=_adicionaisCtx.basePrice+extra;
+  // Adiciona ao carrinho com preço total
+  if(!cart[k])cart[k]={name:_adicionaisCtx.name,price:totalUnit,qty:0,adicionais:selecionados};
+  cart[k].qty+=1;
+  cart[k].price=totalUnit;
+  cart[k].adicionais=selecionados;
+  const el=document.getElementById('cq-'+k);if(el)el.innerText=cart[k].qty;
+  rcCart();
+  closeAdicionaisModal();
+}
+
 function addWaiter(){const u=document.getElementById('cf-wu').value.trim(),p=document.getElementById('cf-wp').value;if(!u||!p)return alert('Preencha usuário e senha!');db.ref('stores/'+curLoja+'/waiters').push({user:u,pass:p});document.getElementById('cf-wu').value='';document.getElementById('cf-wp').value='';}
 function delWaiter(k){if(confirm('Remover garçom?'))db.ref('stores/'+curLoja+'/waiters/'+k).remove();}
 
@@ -4412,35 +4569,77 @@ function aprovarPedidoPixPago(pedidoKey, paymentId){
 }
 
 // ─── SHARED MENU RENDERER ───────────────────────────────
+window._menuAdicionais = {};
 function renderMenuItems(containerId,lojaId,isWaiter){
   db.ref('products/'+lojaId).on('value',sp=>{
     const list=document.getElementById(containerId);list.innerHTML='';
     if(!sp.exists()){list.innerHTML='<p style="text-align:center;opacity:.4;font-size:12px;font-weight:700;margin-top:30px">Cardápio vazio</p>';return;}
+    const cats={};
     sp.forEach(p=>{
       const it=p.val(),k=p.key;
-      if(it.available===false){return;} // skip paused items
-      const ref=isWaiter?wCart:cart;
-      const qty=ref[k]?.qty||0;
-      const fn=isWaiter?'wQty':'cQty';
-      const qid=isWaiter?'wq-'+k:'cq-'+k;
-      const maxSt=it.stock||0;
-      const imgSrc=it.img||'';
-      const imgH=imgSrc?`<img src="${imgSrc}" class="mi-img" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:''
-      const phH=`<div class="mi-ph" style="${imgSrc?'display:none':''}">🍽️</div>`;
-      const div=document.createElement('div');div.className='menu-item fade-in';div.id=(isWaiter?'wi':'ci')+k;
-      const safeDesc=it.desc?it.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
-      div.innerHTML=`<div style="display:flex;align-items:stretch">${imgH}${phH}
-        <div class="mi-body"><div style="flex:1;min-width:0">
-          <div style="font-weight:900;font-size:12px;text-transform:uppercase;line-height:1.3">${it.name}</div>
-          ${safeDesc?`<div style="font-size:10px;color:#666;font-weight:600;margin:3px 0;line-height:1.4">${safeDesc}</div>`:''}
-          <div style="color:var(--red);font-weight:900;font-size:13px;margin-top:4px">R$ ${parseFloat(it.price).toFixed(2)}</div>
-        </div>
-        <div class="qctrl">
-          <button class="qbtn" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="-1" onclick="handleQtyBtn(this)">−</button>
-          <span style="font-weight:900;font-size:16px;min-width:20px;text-align:center" id="${qid}">${qty}</span>
-          <button class="qbtn" style="background:var(--red);border-color:var(--rdk)" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="1" onclick="handleQtyBtn(this)">+</button>
-        </div></div></div>`;
-      list.appendChild(div);
+      if(it.available===false)return;
+      const cat=it.categoria||'Cardápio';
+      if(!cats[cat])cats[cat]=[];
+      cats[cat].push({it,k});
+      window._menuAdicionais[k]=it.adicionais||[];
+    });
+    const catKeys=Object.keys(cats).sort((a,b)=>{
+      if(a==='📦 Combos Especiais')return 1;
+      if(b==='📦 Combos Especiais')return -1;
+      return a.localeCompare(b,'pt');
+    });
+    catKeys.forEach(cat=>{
+      const catDiv=document.createElement('div');
+      catDiv.innerHTML=`<div class="stripe" style="margin-bottom:8px">${cat}</div>`;
+      list.appendChild(catDiv);
+      cats[cat].forEach(({it,k})=>{
+        const ref=isWaiter?wCart:cart;
+        const qty=ref[k]?.qty||0;
+        const fn=isWaiter?'wQty':'cQty';
+        const qid=isWaiter?'wq-'+k:'cq-'+k;
+        const maxSt=it.stock||0;
+        const imgSrc=it.img||'';
+        const isCombo=!!it.isCombo;
+        const hasAdicionais=!!(it.adicionais&&it.adicionais.length>0);
+        const safeDesc=it.desc?it.desc.replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
+        const safeNome=(it.name||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const comboBadge=isCombo?'<span class="combo-badge">💰 ECONOMIA</span>':'';
+        const imgH=imgSrc
+          ?`<div class="mi-photo"><img src="${imgSrc}" class="mi-img" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mi-ph" style="display:none">🍽️</div></div>`
+          :`<div class="mi-photo"><div class="mi-ph">🍽️</div></div>`;
+        const div=document.createElement('div');
+        div.className='menu-item fade-in'+(isCombo?' is-combo':'');
+        div.id=(isWaiter?'wi':'ci')+k;
+        div.innerHTML=`
+          <div class="mi-inner">
+            <div class="mi-text">
+              ${comboBadge}
+              <div style="font-weight:900;font-size:12px;text-transform:uppercase;line-height:1.3">${safeNome}</div>
+              ${safeDesc?`<div style="font-size:10px;color:#666;font-weight:600;margin:3px 0;line-height:1.4">${safeDesc}</div>`:''}
+              <div style="color:var(--red);font-weight:900;font-size:13px;margin-top:4px">R$ ${parseFloat(it.price).toFixed(2)}</div>
+              ${hasAdicionais&&!isWaiter?`<button class="btn-add-adicional" data-k="${k}" data-nome="${safeNome}" data-price="${parseFloat(it.price)}" style="margin-top:6px;background:#fff3cd;border:1.5px solid #ca8a04;color:#7c4a00;border-radius:8px;padding:4px 10px;font-size:9px;font-weight:900;cursor:pointer;display:block;width:100%;text-align:center">➕ Adicionais</button>`:''}
+            </div>
+            ${imgH}
+          </div>
+          <div style="display:flex;justify-content:flex-end;align-items:center;padding:0 12px 10px">
+            <div class="qctrl">
+              <button class="qbtn" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="-1" onclick="handleQtyBtn(this)">−</button>
+              <span style="font-weight:900;font-size:16px;min-width:20px;text-align:center" id="${qid}">${qty}</span>
+              <button class="qbtn" style="background:var(--red);border-color:var(--rdk)" data-k="${k}" data-fn="${fn}" data-price="${it.price}" data-max="${maxSt}" data-d="1" onclick="handleQtyBtn(this)">+</button>
+            </div>
+          </div>`;
+        list.appendChild(div);
+      });
+    });
+    list.querySelectorAll('.btn-add-adicional').forEach(btn=>{
+      btn.addEventListener('click',function(){
+        openAdicionaisModal(
+          this.dataset.k,
+          this.dataset.nome,
+          parseFloat(this.dataset.price),
+          window._menuAdicionais[this.dataset.k]||[]
+        );
+      });
     });
   });
 }
@@ -6414,6 +6613,27 @@ setInterval(()=>{
       <div><label class="lbl">Estoque (0=∞)</label><input class="inp" id="ep-stock" type="number" placeholder="0"></div>
       <div><label class="lbl">Alerta estoque</label><input class="inp" id="ep-stock-alert" type="number" placeholder="3"></div>
     </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#fefce8;border:2px solid #ca8a04;border-radius:12px;padding:12px;margin:10px 0">
+      <div>
+        <div style="font-weight:900;font-size:12px">📦 Este item é um Combo?</div>
+        <div style="font-size:10px;color:#854d0e;margin-top:2px">Badge ECONOMIA + destaque dourado</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="ep-is-combo" style="width:20px;height:20px;accent-color:#ca8a04">
+        <span style="font-size:11px;font-weight:900;color:#ca8a04">Sim</span>
+      </label>
+    </div>
+    <label class="lbl">Categoria</label>
+    <input class="inp" id="ep-categoria" placeholder="Ex: Hambúrgueres, 📦 Combos Especiais">
+    <div style="background:#f0fdf4;border:2px solid var(--green);border-radius:12px;padding:13px;margin-bottom:10px">
+      <div style="font-weight:900;font-size:12px;color:#15803d;margin-bottom:8px">➕ Adicionais</div>
+      <div id="ep-adicionais-list" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px">
+        <input class="inp" id="ep-add-nome" placeholder="Nome do adicional" style="flex:1;margin-bottom:0">
+        <input class="inp" id="ep-add-preco" type="number" step="0.50" placeholder="R$" style="width:80px;margin-bottom:0">
+        <button onclick="epAddAdicionalTemp()" style="background:var(--green);color:#fff;border:2px solid #14532d;border-radius:10px;padding:0 12px;font-weight:900;font-size:13px;cursor:pointer;flex-shrink:0">+</button>
+      </div>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:12px;background:#f8fafc;border-radius:10px;border:2px solid #e2e8f0">
       <div>
         <div style="font-weight:900;font-size:12px">Status do Item</div>
@@ -6425,6 +6645,27 @@ setInterval(()=>{
     </div>
     <input type="hidden" id="ep-avail-val" value="true">
     <button class="btn btn-gold" style="margin-top:12px" onclick="saveEditProd()">💾 Salvar Alterações</button>
+  </div>
+</div>
+
+<!-- ══ MODAL: ADICIONAIS DO PRODUTO ══ -->
+<div id="modal-adicionais" class="modal-ov hidden">
+  <div class="modal-adicionais">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px" id="madicionais-title">➕ Adicionais</span>
+      <button onclick="closeAdicionaisModal()" style="background:none;border:none;font-size:26px;cursor:pointer">×</button>
+    </div>
+    <div id="madicionais-locked" class="hidden" style="background:#f1f5f9;border:2px solid #94a3b8;border-radius:12px;padding:14px;text-align:center;margin-bottom:14px">
+      <div style="font-size:22px;margin-bottom:6px">🔒</div>
+      <div style="font-weight:900;font-size:12px">Adicionais disponíveis nos planos Ouro e Black</div>
+      <div style="font-size:10px;opacity:.6;margin-top:4px">Fale com a loja para mais informações</div>
+    </div>
+    <div id="madicionais-list"></div>
+    <div style="background:#fef9c3;border:2px solid #ca8a04;border-radius:12px;padding:12px;margin:14px 0;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:900;font-size:12px">Total com adicionais</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red)" id="madicionais-total">R$ 0,00</div>
+    </div>
+    <button class="btn btn-red" onclick="confirmAdicionais()">🛒 Adicionar ao Carrinho</button>
   </div>
 </div>
 
