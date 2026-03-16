@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>White Gold OMNI v27</title>
+<title>White Gold OMNI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@400;700;900&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -31,7 +31,7 @@
   --border:2.5px solid var(--black);--shadow:4px 4px 0 var(--black);--rad:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'DM Sans',sans-serif;background:#f2f2ed;color:var(--black);overflow-x:hidden}
+body{font-family:'DM Sans',sans-serif;background:#f2f2ed;color:var(--black);overflow-x:visible}
 .hidden{display:none!important}
 .view{min-height:100dvh;padding-bottom:90px}
 
@@ -130,7 +130,7 @@ body{font-family:'DM Sans',sans-serif;background:#f2f2ed;color:var(--black);over
 .pd{width:26px;height:26px;border-radius:7px;background:#fee2e2;border:2px solid var(--red);color:var(--red);font-size:15px;cursor:pointer;font-weight:900;flex-shrink:0;margin-left:auto;display:flex;align-items:center;justify-content:center}
 
 /* ── CATEGORY NAV BAR ── */
-.cat-nav{position:-webkit-sticky;position:sticky;top:60px;z-index:1000;background:#fff;display:flex;gap:12px;overflow-x:auto;padding:10px 16px;border-bottom:2.5px solid #f0f0ea;-webkit-overflow-scrolling:touch;scrollbar-width:none;box-shadow:0 4px 6px rgba(0,0,0,.07)}
+.cat-nav{position:fixed;top:58px;left:0;right:0;z-index:9999;display:flex;gap:10px;overflow-x:auto;padding:10px 16px;background:#fff;border-bottom:2.5px solid #f0f0ea;-webkit-overflow-scrolling:touch;scrollbar-width:none;box-shadow:0 4px 6px rgba(0,0,0,.07);transition:box-shadow .2s}
 .cat-nav::-webkit-scrollbar{display:none}
 .cat-btn{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;background:none;border:2.5px solid #e5e7eb;border-radius:14px;padding:7px 13px;cursor:pointer;transition:all .2s ease;min-width:58px}
 .cat-btn.active,.cat-btn.cat-ativa{background:var(--black);border:3px solid #D4AF37;box-shadow:0 0 0 1.5px #D4AF37;transform:scale(1.06)}
@@ -543,7 +543,7 @@ textarea.inp{resize:vertical;min-height:65px}
   <div class="l-logo">WHITE GOLD</div>
   <div class="l-sub">Portal do Lojista</div>
   <div class="l-card">
-    <label class="lbl" style="color:#aaa">Nome da Loja</label><input class="inp inp-dark" id="l-user" placeholder="Ex: Filial Centro" autocomplete="off">
+    <label class="lbl" style="color:#aaa">Nome da Loja</label><input class="inp inp-dark" id="l-user" placeholder="Ex: Filial Centro">
     <label class="lbl" style="color:#aaa">Senha</label><input class="inp inp-dark" id="l-pass" type="password" placeholder="••••••••">
     <label class="remember-row" style="margin-top:4px"><input type="checkbox" id="l-remember" checked><span>Lembrar meu acesso</span></label>
     <button class="btn btn-gold" onclick="doLogin()">Entrar →</button>
@@ -849,6 +849,8 @@ textarea.inp{resize:vertical;min-height:65px}
       <textarea class="inp" id="cf-desc" placeholder="Ingredientes e detalhes..."></textarea>
       <label class="lbl">Preço R$</label><input class="inp" id="cf-preco" type="number" placeholder="22.90">
       <label class="lbl">Categoria</label>
+      <!-- Chips das categorias já existentes -->
+      <div id="cf-cat-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
       <div style="display:flex;gap:8px;margin-bottom:0">
         <input class="inp" id="cf-categoria" placeholder="Ex: Hambúrgueres, Bebidas, 📦 Combos Especiais" style="flex:1;margin-bottom:0" oninput="sugerirIconeCategoria(this.value,'cf-icone')">
         <input class="inp" id="cf-icone" placeholder="🍔" style="width:64px;font-size:22px;text-align:center;margin-bottom:0" maxlength="4">
@@ -1833,7 +1835,7 @@ function mTab(id,btn){
     }
   }
   if(id==='avaliacoes')loadMerchantReviews();
-  if(id==='config'){loadConfigForm();loadHorarios();loadMPConfigLoja();loadEstoqueDetalhado();loadFormasPagamento();renderMeuPlanoConfig();}
+  if(id==='config'){loadConfigForm();loadHorarios();loadMPConfigLoja();loadEstoqueDetalhado();loadFormasPagamento();renderMeuPlanoConfig();setTimeout(_renderCatChips,300);}
   if(id==='recuperacao')loadRecuperacaoClientes();
 }
 
@@ -3072,6 +3074,135 @@ function renderTempAdicionais(){
     </div>`).join('');
 }
 
+
+// ─── CHIPS DE CATEGORIAS EXISTENTES ────────────────────────────────
+function _renderCatChips(){
+  if(!curLoja)return;
+  const wrap=document.getElementById('cf-cat-chips');
+  if(!wrap)return;
+  db.ref('products/'+curLoja).once('value',snap=>{
+    const cats=new Map(); // nome -> icone
+    snap.forEach(p=>{
+      const d=p.val();
+      if(d.categoria&&d.available!==false){
+        if(!cats.has(d.categoria))cats.set(d.categoria,d.icone||'🍽️');
+      }
+    });
+    wrap.innerHTML='';
+    if(cats.size===0)return;
+    // Label
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-size:9px;font-weight:900;text-transform:uppercase;opacity:.5;width:100%;margin-bottom:2px';
+    lbl.textContent='Categorias existentes — toque para usar:';
+    wrap.appendChild(lbl);
+    cats.forEach((icone,nome)=>{
+      // Wrapper do chip
+      const chipWrap=document.createElement('div');
+      chipWrap.style.cssText='display:inline-flex;align-items:center;border-radius:20px;border:2px solid #e5e7eb;background:#f9fafb;overflow:hidden;transition:.15s';
+      // Botão principal (selecionar)
+      const chip=document.createElement('button');
+      chip.type='button';
+      chip.style.cssText='display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:transparent;border:none;font-size:11px;font-weight:700;cursor:pointer;color:inherit';
+      chip.innerHTML=icone+' <span>'+nome+'</span>';
+      chip.onclick=()=>{
+        const cf=document.getElementById('cf-categoria');
+        const ci=document.getElementById('cf-icone');
+        if(cf)cf.value=nome;
+        if(ci)ci.value=icone;
+        // Destaca o chip activo
+        wrap.querySelectorAll('div[data-chip]').forEach(b=>{
+          b.style.background='#f9fafb';
+          b.style.borderColor='#e5e7eb';
+          b.style.color='';
+        });
+        chipWrap.style.background='var(--gold)';
+        chipWrap.style.borderColor='var(--black)';
+      };
+      // Botão excluir (×)
+      const btnDel=document.createElement('button');
+      btnDel.type='button';
+      btnDel.title='Excluir categoria "'+nome+'"';
+      btnDel.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:4px;background:rgba(220,38,38,.1);border:none;border-radius:50%;font-size:12px;font-weight:900;cursor:pointer;color:#dc2626;flex-shrink:0;transition:.15s';
+      btnDel.innerHTML='×';
+      btnDel.onmouseenter=()=>btnDel.style.background='rgba(220,38,38,.25)';
+      btnDel.onmouseleave=()=>btnDel.style.background='rgba(220,38,38,.1)';
+      btnDel.onclick=(e)=>{
+        e.stopPropagation();
+        _confirmarExcluirCategoria(nome, icone);
+      };
+      chipWrap.dataset.chip=nome;
+      chipWrap.appendChild(chip);
+      chipWrap.appendChild(btnDel);
+      wrap.appendChild(chipWrap);
+    });
+    // Botão "Nova categoria"
+    const btnNova=document.createElement('button');
+    btnNova.type='button';
+    btnNova.style.cssText='display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;border:2px dashed #94a3b8;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#64748b';
+    btnNova.innerHTML='+ Nova';
+    btnNova.onclick=()=>{
+      const cf=document.getElementById('cf-categoria');
+      const ci=document.getElementById('cf-icone');
+      if(cf){cf.value='';cf.focus();}
+      if(ci)ci.value='';
+      wrap.querySelectorAll('div[data-chip]').forEach(b=>{b.style.background='#f9fafb';b.style.borderColor='#e5e7eb';});
+    };
+    wrap.appendChild(btnNova);
+  });
+}
+
+// ─── EXCLUIR CATEGORIA ───────────────────────────────────────────────
+function _confirmarExcluirCategoria(nome, icone){
+  // Remove modal anterior se existir
+  const old=document.getElementById('modal-del-cat');if(old)old.remove();
+  const modal=document.createElement('div');
+  modal.id='modal-del-cat';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:480px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-bottom:8px">🗂️ Excluir Categoria</div>
+      <div style="background:#fef9c3;border:2px solid #ca8a04;border-radius:12px;padding:12px;margin-bottom:16px;font-size:12px;font-weight:700;line-height:1.6">
+        <div style="font-size:16px;margin-bottom:4px">${icone} <strong>${nome}</strong></div>
+        O que fazer com os produtos desta categoria?
+      </div>
+      <button onclick="_excluirCategoria('${nome.replace(/'/g,"\\'")}','mover')" style="width:100%;padding:13px;border-radius:12px;border:2.5px solid var(--black);background:#f8fafc;font-weight:900;font-size:12px;cursor:pointer;margin-bottom:8px;text-align:left">
+        📦 Mover produtos para <strong>"Cardápio Geral"</strong><br><span style="font-size:10px;opacity:.6;font-weight:700">Os itens continuam visíveis, mas sem categoria</span>
+      </button>
+      <button onclick="_excluirCategoria('${nome.replace(/'/g,"\\'")}','apagar')" style="width:100%;padding:13px;border-radius:12px;border:2.5px solid var(--red);background:#fee2e2;color:var(--red);font-weight:900;font-size:12px;cursor:pointer;margin-bottom:12px;text-align:left">
+        🗑️ Apagar categoria <strong>e todos os produtos</strong><br><span style="font-size:10px;font-weight:700;opacity:.7">Esta acção não pode ser desfeita!</span>
+      </button>
+      <button onclick="document.getElementById('modal-del-cat').remove()" style="width:100%;padding:11px;border-radius:12px;border:2px solid #e5e7eb;background:#fff;font-weight:700;font-size:12px;cursor:pointer">Cancelar</button>
+    </div>`;
+  document.body.appendChild(modal);
+  // Fechar ao clicar fora
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+}
+
+function _excluirCategoria(nome, acao){
+  const modal=document.getElementById('modal-del-cat');if(modal)modal.remove();
+  if(!curLoja)return;
+  db.ref('products/'+curLoja).once('value',snap=>{
+    if(!snap.exists()){_renderCatChips();return;}
+    const promises=[];
+    snap.forEach(p=>{
+      if((p.val().categoria||'')=== nome){
+        if(acao==='apagar'){
+          promises.push(db.ref('products/'+curLoja+'/'+p.key).remove());
+        } else {
+          promises.push(db.ref('products/'+curLoja+'/'+p.key).update({categoria:'Cardápio Geral',icone:'🍽️'}));
+        }
+      }
+    });
+    Promise.all(promises).then(()=>{
+      _renderCatChips();
+      // Limpa campo se era esta categoria
+      const cf=document.getElementById('cf-categoria');
+      if(cf&&cf.value===nome)cf.value='';
+      const ci=document.getElementById('cf-icone');
+      if(ci&&cf&&cf.value==='')ci.value='';
+    });
+  });
+}
 function addProduct(){
   const n=document.getElementById('cf-nome').value.trim(),p=document.getElementById('cf-preco').value;
   const desc=document.getElementById('cf-desc').value.trim();
@@ -3088,8 +3219,9 @@ function addProduct(){
   document.getElementById('cf-desc').value='';document.getElementById('cf-img-url').value='';
   const ps=document.getElementById('cf-stock');if(ps)ps.value='';
   const pa=document.getElementById('cf-stock-alert');if(pa)pa.value='';
-  const pc=document.getElementById('cf-categoria');if(pc)pc.value='';
-  const pico=document.getElementById('cf-icone');if(pico)pico.value='';
+  // Mantém categoria e ícone preenchidos para facilitar adicionar mais itens na mesma categoria
+  // Actualiza chips de categorias após salvar
+  _renderCatChips();
   const pi=document.getElementById('cf-is-combo');if(pi)pi.checked=false;
   const pw=document.getElementById('prod-img-preview-wrap');if(pw)pw.innerHTML='';prodImgB64='';
   _tempAdicionais=[];renderTempAdicionais();
@@ -4795,7 +4927,7 @@ function renderMenuItems(containerId,lojaId,isWaiter){
       anchor.id='cat-section-'+encodeURIComponent(cat);
       anchor.dataset.cat=cat;
       anchor.className='cat-section-anchor';
-      anchor.style.cssText='scroll-margin-top:120px;';
+      anchor.style.cssText='scroll-margin-top:130px;';
       list.appendChild(anchor);
       const catDiv=document.createElement('div');
       catDiv.innerHTML='<div class="stripe" style="margin-bottom:8px">'+cat+'</div>';
@@ -5568,44 +5700,33 @@ function doLogin(){
     let _mr=_mWait;const _mt=setInterval(()=>{_mr--;if(_mr<=0){clearInterval(_mt);errEl.classList.add('hidden');}else errMsg.innerText=`🔒 Bloqueado. Aguarde ${_mr}s.`;},1000);
     return;
   }
-  // Credencial master → qualquer nome + senha master abre o Admin
+  // Credencial master — abre Admin independente do nome digitado
   if(p==='wgmaster2024'){
     _resetLoginAttempts('merchant_'+u);
+    document.getElementById('adm-pass').value='wgmaster2024';
     gotoView('view-admin-login',null);
-    // Auto-preenche e submete login admin
-    setTimeout(()=>{
-      const admPass=document.getElementById('adm-pass');
-      if(admPass){admPass.value='wgmaster2024';doAdminLogin();}
-    },100);
+    setTimeout(()=>doAdminLogin(),80);
     return;
   }
-  // Login normal de lojista por email cadastrado na loja
-  db.ref('stores').once('value',snap=>{
+  db.ref('stores').orderByChild('name').equalTo(u).once('value',snap=>{
     if(!snap.exists()){
       _recordFailedLogin('merchant_'+u);
-      errMsg.innerText='Nenhuma loja encontrada. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
+      errMsg.innerText='Loja "'+u+'" não encontrada. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
       document.getElementById('l-err-btn-cadastro').style.display='';
       document.getElementById('l-err-btn-senha').style.display='none';
       errEl.classList.remove('hidden');
       return;
     }
-    let found=false;
     snap.forEach(s=>{
-      if(found)return;
       const d=s.val();
-      // Verifica email (campo email ou name) e senha
-      const emailMatch=(d.email&&d.email.toLowerCase()===u.toLowerCase())||(d.name&&d.name.toLowerCase()===u.toLowerCase());
-      if(!emailMatch)return;
       if(d.pass!==p){
         _recordFailedLogin('merchant_'+u);
         errMsg.innerText='Senha incorreta. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
         document.getElementById('l-err-btn-cadastro').style.display='none';
         document.getElementById('l-err-btn-senha').style.display='';
         errEl.classList.remove('hidden');
-        found=true;
         return;
       }
-      found=true;
       _resetLoginAttempts('merchant_'+u);
       errEl.classList.add('hidden');
       if(d.ativo===false){
@@ -5615,6 +5736,7 @@ function doLogin(){
         errEl.classList.remove('hidden');
         return;
       }
+      // Vencimento automático
       if(d.licenseExpiry && d.licenseExpiry < Date.now()){
         db.ref('stores/'+s.key).update({ativo:false});
         showBlocked(d.name);
@@ -5629,13 +5751,6 @@ function doLogin(){
       verificarPixPendente(s.key);
       carregarPlanoEAplicarPermissoes(s.key);
     });
-    if(!found){
-      _recordFailedLogin('merchant_'+u);
-      errMsg.innerText='E-mail não encontrado. '+_attemptsLeft('merchant_'+u)+' tentativa(s) restante(s).';
-      document.getElementById('l-err-btn-cadastro').style.display='';
-      document.getElementById('l-err-btn-senha').style.display='none';
-      errEl.classList.remove('hidden');
-    }
   });
 }
 
@@ -6797,16 +6912,21 @@ function deleteClient(){
 }
 
 // ─── INIT ───────────────────────────────────────────────
-// Sempre que a página carrega limpa todas as sessões salvas
-// para o utilizador começar do zero sem entrar em nenhuma conta
-(function limparSessaoInicial(){
+// Limpa TUDO ao abrir o link — garante que ninguém entra logado
+(function(){
   try{
     localStorage.removeItem('wg_client');
     localStorage.removeItem('wg_merchant');
     localStorage.removeItem('wg_waiter');
+    sessionStorage.clear();
   }catch(e){}
+  // Reset variáveis globais de sessão
+  clientUser=null;
+  curLoja='';
+  storeData=null;
+  wLoja='';
+  wName='';
 })();
-// Não restaura nenhuma sessão — cada acesso começa limpo
 loadStores();
 setTimeout(checkDirectLink,500);
 
